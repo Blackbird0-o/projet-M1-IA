@@ -1,23 +1,14 @@
 #-------------Imports-------------
-from keras import backend as K
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import keras
-from keras.models import Sequential
-from keras.layers import Activation, Dense, Dropout, Flatten
-from keras.layers import Conv2D, MaxPooling2D
-from keras.layers import BatchNormalization
-from keras.optimizers import RMSprop, adam
-from keras.utils import to_categorical
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from mpl_toolkits.mplot3d import Axes3D 
 from matplotlib import cm
 
 
-#plt.close('all')
+plt.close('all')
 
 
 #-------------Preliminray Data Exploration-------------
