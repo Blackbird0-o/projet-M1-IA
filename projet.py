@@ -57,93 +57,142 @@ test_feature = x_test_fft#[0:,0:10]
 x_train_sc = StandardScaler().fit_transform(x_train_boot)
 x_train_fft_sc = StandardScaler().fit_transform(x_train_fft)
 
-# MinMaxScaler
-#IDEA : I think I should scale on the row dimension -> n.transpose
+# Transposing
 x_train_boot_T = np.transpose(x_train_boot)
-x_train_mms = np.transpose(MinMaxScaler().fit_transform(x_train_boot_T))
-x_train_fft_mms = MinMaxScaler().fit_transform(x_train_fft)
+x_train_mms = np.transpose(StandardScaler().fit_transform(x_train_boot_T))
+x_train_fft_T = np.transpose(x_train_fft)
+x_train_fft_sc = np.transpose(StandardScaler().fit_transform(x_train_fft))
 
 
 #-------------PCA------------- 
-pca = PCA(n_components=10)
-x_PCA = pca.fit_transform(x_train_sc)
+def pca_func():
+  pca = PCA(n_components=10)
+  x_PCA = pca.fit_transform(x_train_sc)
 
-# let's visualize the data in 3d
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-ax.set_xlabel('Principal Component 1', fontsize = 15)
-ax.set_ylabel('Principal Component 2', fontsize = 15)
-ax.set_zlabel('Principal Component 3', fontsize = 15)
-ax.set_title('ACP du signal temporel', fontsize = 20)
-targets = [0,1]
-colors = ['b', 'r']
-plot_samples = 500
-x_PCA_plot = x_PCA[0:plot_samples]
+  # let's visualize the data in 3d
+  fig = plt.figure()
+  ax = fig.add_subplot(111, projection='3d')
+  ax.set_xlabel('Principal Component 1', fontsize = 15)
+  ax.set_ylabel('Principal Component 2', fontsize = 15)
+  ax.set_zlabel('Principal Component 3', fontsize = 15)
+  ax.set_title('ACP du signal temporel', fontsize = 20)
+  targets = [0,1]
+  colors = ['b', 'r']
+  plot_samples = 500
+  x_PCA_plot = x_PCA[0:plot_samples]
 
-for target, color in zip(targets,colors):
-    indexes = np.where(y_train_boot[0:plot_samples] == target)
-    ax.scatter(x_PCA_plot[indexes,0]
-               , x_PCA_plot[indexes,1],
-               x_PCA_plot[indexes,2]
-               , c = color
-               , s = 50)
-ax.legend(['pas d\'exoplanetes', 'exoplanetes'])
-ax.grid()
+  for target, color in zip(targets,colors):
+      indexes = np.where(y_train_boot[0:plot_samples] == target)
+      ax.scatter(x_PCA_plot[indexes,0]
+                , x_PCA_plot[indexes,1],
+                x_PCA_plot[indexes,2]
+                , c = color
+                , s = 50)
+  ax.legend(['pas d\'exoplanetes', 'exoplanetes'])
+  ax.grid()
+
+  plt.show()
+  return None
 
 
 
 
-#-------------PCA + MMS------------- 
-pca_mms = PCA(n_components=10)
-x_PCA_MMS = pca_mms.fit_transform(x_train_mms)
+#-------------PCA + T------------- 
+def pca_T_func():
+  pca_T = PCA(n_components=10)
+  x_PCA_T = pca_T.fit_transform(x_train_mms)
 
-# let's visualize the data in 3d
-fig = plt.figure()
-ax = fig.add_subplot(111)
-ax.set_xlabel('Principal Component 1', fontsize = 15)
-ax.set_ylabel('Principal Component 2', fontsize = 15)
-ax.set_title('ACP du signal temporel avec MMS', fontsize = 20)
-targets = [0,1]
-colors = ['b', 'r']
-plot_samples = y_train_boot.shape[0]
-x_PCA_MMS_plot = x_PCA_MMS[0:plot_samples]
+  # let's visualize the data in 3d
+  fig = plt.figure()
+  ax = fig.add_subplot(111, projection='3d')
+  ax.set_xlabel('Principal Component 1', fontsize = 15)
+  ax.set_ylabel('Principal Component 2', fontsize = 15)
+  ax.set_zlabel('Principal Component 3', fontsize = 15)
+  ax.set_title('ACP du signal temporel avec normalisation', fontsize = 20)
+  targets = [0,1]
+  colors = ['b', 'r']
+  plot_samples = 500
+  x_PCA_T_plot = x_PCA_T[0:plot_samples]
 
-for target, color in zip(targets,colors):
-    indexes = np.where(y_train_boot[0:plot_samples] == target)
-    ax.scatter(x_PCA_MMS_plot[indexes,0]
-               , x_PCA_MMS_plot[indexes,1]
-               , c = color
-               , s = 50)
-ax.legend(['pas d\'exoplanetes', 'exoplanetes'])
-ax.grid()
+  for target, color in zip(targets,colors):
+      indexes = np.where(y_train_boot[0:plot_samples] == target)
+      ax.scatter(x_PCA_T_plot[indexes,0]
+                , x_PCA_T_plot[indexes,1]
+                , x_PCA_T_plot[indexes,2]
+                , c = color
+                , s = 50)
+  ax.legend(['pas d\'exoplanetes', 'exoplanetes'])
+  ax.grid()
+  plt.show()
+  return None
 
 
 
 
 #-------------PCA + FFT------------- 
-pca_fft = PCA(n_components=10)
-x_PCA_fft = pca_fft.fit_transform(x_train_fft_sc)
+def pcaFft_func():
+  pca_fft = PCA(n_components=10)
+  x_PCA_fft = pca_fft.fit_transform(x_train_fft_sc)
 
-# let's visualize the data in 3d
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-ax.set_xlabel('Principal Component 1', fontsize = 15)
-ax.set_ylabel('Principal Component 2', fontsize = 15)
-ax.set_zlabel('Principal Component 3', fontsize = 15)
-ax.set_title('ACP du signal fréquentiel', fontsize = 20)
-targets = [0,1]
-colors = ['b', 'r']
-plot_samples = 500
-x_PCA_fft_plot = x_PCA_fft[0:plot_samples]
+  # let's visualize the data in 3d
+  fig = plt.figure()
+  ax = fig.add_subplot(111, projection='3d')
+  ax.set_xlabel('Principal Component 1', fontsize = 15)
+  ax.set_ylabel('Principal Component 2', fontsize = 15)
+  ax.set_zlabel('Principal Component 3', fontsize = 15)
+  ax.set_title('ACP du signal fréquentiel', fontsize = 20)
+  targets = [0,1]
+  colors = ['b', 'r']
+  plot_samples = 500
+  x_PCA_fft_plot = x_PCA_fft[0:plot_samples]
 
-for target, color in zip(targets,colors):
-    indexes = np.where(y_train_boot[0:plot_samples] == target)
-    ax.scatter(x_PCA_fft_plot[indexes,0]
-               , x_PCA_fft_plot[indexes,1],
-               x_PCA_fft_plot[indexes,2]
-               , c = color
-               , s = 50)
-ax.legend(['pas d\'exoplanetes', 'exoplanetes'])
-ax.grid()
+  for target, color in zip(targets,colors):
+      indexes = np.where(y_train_boot[0:plot_samples] == target)
+      ax.scatter(x_PCA_fft_plot[indexes,0]
+                , x_PCA_fft_plot[indexes,1],
+                x_PCA_fft_plot[indexes,2]
+                , c = color
+                , s = 50)
+  ax.legend(['pas d\'exoplanetes', 'exoplanetes'])
+  ax.grid()
+  plt.show()
+  return None
 
-plt.show()
+
+
+
+#-------------PCA + FFT + T------------- 
+def pca_fft_T_func():
+  pca_fft_T = PCA(n_components=10)
+  x_PCA_fft_T = pca_fft_T.fit_transform(x_train_fft_sc)
+
+  # let's visualize the data in 3d
+  fig = plt.figure()
+  ax = fig.add_subplot(111, projection='3d')
+  ax.set_xlabel('Principal Component 1', fontsize = 15)
+  ax.set_ylabel('Principal Component 2', fontsize = 15)
+  ax.set_zlabel('Principal Component 3', fontsize = 15)
+  ax.set_title('ACP du signal fréquentiel avec normalisation', fontsize = 20)
+  targets = [0,1]
+  colors = ['b', 'r']
+  plot_samples = 500
+  x_PCA_fft_T_plot = x_PCA_fft_T[0:plot_samples]
+
+  for target, color in zip(targets,colors):
+      indexes = np.where(y_train_boot[0:plot_samples] == target)
+      ax.scatter(x_PCA_fft_T_plot[indexes,0]
+                , x_PCA_fft_T_plot[indexes,1],
+                x_PCA_fft_T_plot[indexes,2]
+                , c = color
+                , s = 50)
+  ax.legend(['pas d\'exoplanetes', 'exoplanetes'])
+  ax.grid()
+  plt.show()
+  return None
+
+
+
+
+#-------------TEST RUN------------- 
+pca_T_func()
+pca_fft_T_func()
