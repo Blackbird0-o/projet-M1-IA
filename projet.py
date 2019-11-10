@@ -1,4 +1,6 @@
 #-------------Imports-------------
+import warnings
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -16,11 +18,16 @@ from imblearn.base import BaseSampler
 
 from collections import Counter # counts the number of elements per class ({0: 5050, 1: 37})
 
+from keras.models import Sequential
+from keras.layers import Activation, Dense, Dropout, Flatten, BatchNormalization
+from keras.optimizers import RMSprop, adam
 
 
 
 
 #-------------Cleaning up-------------
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 plt.close('all')
 
 
@@ -170,8 +177,52 @@ def SMOTE_plot():
 # Resampling with SMOTE (oversampling algorithm)
 x_train_SMOTE, y_train_SMOTE = SMOTE(random_state=0).fit_resample(x_train, y_train)
 
+# Neural Net with SMOTE
+# PBL : dimensions des layers denses a check
+def NN(X, y, X_tst, y_tst):
+  '''
+  Defines and fits a NN sequential model on X and y. It then tests the model with X_tst and y_tst
+  '''
+
+  # Specify model
+  model = Sequential()
+  model.add(Dense(512, activation="linear", input_shape=(784,)))
+  model.add(BatchNormalization())
+  model.add(Dropout(0.2))
+
+  model.add(Dense(100, init="uniform",activation="linear"))
+  model.add(BatchNormalization())
+  model.add(Dropout(0.2))
+
+  model.add(Dense(2, activation="softmax"))
+
+  model.summary()
+  model.compile(loss="categorical_crossentropy",
+                optimizer=adam(),
+                metrics=["accuracy"])
+
+  # Parameters
+  batch_size = 64
+  epochs = 20
+
+  # Perform fit
+  history = model.fit(X, y,
+                      batch_size=batch_size,
+                      epochs=epochs,
+                      verbose=1,
+                      shuffle=False,
+                      validation_data=(X_tst, y_tst))
 
 
+  # Print results
+  score = model.evaluate(X_tst, y_tst, verbose=0)
+  print('Test loss/accuracy: %g, %g' % (score[0], score[1]))
+  score_nn = score[1]
+  return None
+
+def SMOTE_NN():
+  NN(x_train_SMOTE, y_train_SMOTE, x_test, y_test)
+  return None
 
 
 
