@@ -7,6 +7,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import savgol_filter
 from scipy.optimize import minimize
+from keras.layers import LSTM 
+from keras.models import Sequential
+from keras.layers import Activation, Dense, Dropout, Flatten, BatchNormalization
+from keras.optimizers import RMSprop, adam
+from keras.utils import to_categorical
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from keras.utils import to_categorical
+
 
 def RPN(x):
     '''
@@ -105,7 +113,49 @@ plt.title('FFT')
 
 plt.show()
 
+# Bootstrapping
+x_train1 = x_train[np.where(y_train == 1)[0]] #Separation du train_set selon le label
+x_train0 = x_train[np.where(y_train == 0)[0]]
+index_train = np.random.randint(0,x_train1.shape[0] , size=x_train0.shape[0]) #genere une liste d'index 
+                                                                              #aléatoire pour equilibrer les données
+x_train_1_boot = x_train1[index_train]
+y_train_boot = np.concatenate((np.ones(x_train0.shape[0]),np.zeros(x_train0.shape[0]))) #on génère une liste de labels avec autant de 1 que de 0
+x_train_boot = np.concatenate((x_train_1_boot,x_train0)) #on rassemble les données une fois équilibrées
 
+# shuffle
+index = np.arange(y_train_boot.shape[0])
+np.random.shuffle(index)
+x_train_boot = x_train_boot[index]
+y_train_boot = y_train_boot[index]
 
+# Transposing
+x_train_boot_T = np.transpose(x_train_boot)
+x_train_boot_T_rsc = np.transpose(StandardScaler().fit_transform(x_train_boot_T))
 
+# Work with one-hot encoding of labels
+y_train_one_hot = to_categorical(y, 2)
+y_test_one_hot = to_categorical(y_test, 2)
+
+model = Sequential()
+model.add(LSTM(50,output=True,input_shape=(3197,)))
+model.add(Dropout(0.05))
+model.add(LSTM(100,input_shape=(3197,)))
+model.add(Dropout(0.05))
+model.add(Dense(10,init="uniform",activation="relu"))
+model.add(Dense(2,init="uniform",activation="softmax"))
+
+model.summary()
+model.compile(loss="categorical_crossentropy",
+              optimizer=adam(),
+              metrics = ["accuracy"])
+
+batch_size = 64
+epochs = 20
+
+# Perform fit
+history = model.fit(x_train_boot_T_rsc, y_train_one_hot,
+                      batch_size=batch_size,
+                      epochs=epochs,
+                      verbose=1,
+                      shuffle=False)
 

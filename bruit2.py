@@ -79,7 +79,7 @@ s_fft = np.abs(np.fft.fft(s))[0:,0:1599]                        # FFT du signal
 features = np.zeros((s.shape[0],2))
 x_train_filtered = np.zeros(x_train.shape)
 
-for i in tqdm(range(0,1500)):#x_train_filtered.shape[0])) :
+for i in tqdm(range(0,500)):#x_train_filtered.shape[0])) :
     
     x0 = [154,3]
     res = minimize(loss,x0,args=(s[i],s_fft[i]),tol=1e-4,method='Powell')
