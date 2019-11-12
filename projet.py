@@ -21,6 +21,8 @@ from collections import Counter # counts the number of elements per class ({0: 5
 from keras.models import Sequential
 from keras.layers import Activation, Dense, Dropout, Flatten, BatchNormalization
 from keras.optimizers import RMSprop, adam
+from keras.utils import to_categorical
+
 
 
 
@@ -86,6 +88,9 @@ x_train_fft_T_rsc = np.transpose(StandardScaler().fit_transform(x_train_fft))
 
 #-------------PCA------------- 
 def pcaPlot(X, descr= 'temporel'):
+  '''
+  Defines and 10 components PCA of the dataset X and plots the first 3
+  '''
   pca = PCA(n_components=10)
   x_PCA = pca.fit_transform(X)
 
@@ -137,7 +142,7 @@ def pca_fft_T():
 
 
 
-#-------------Oversampling with SMOTE------------- 
+#-------------Oversampling with SMOTE-------------
 ## Preview of what 
 
 # Make an identity sampler
@@ -183,14 +188,21 @@ def NN(X, y, X_tst, y_tst):
   '''
   Defines and fits a NN sequential model on X and y. It then tests the model with X_tst and y_tst
   '''
+  # Work with one-hot encoding of labels
+  y_train_one_hot = to_categorical(y, 2)
+  y_test_one_hot = to_categorical(y_test, 2)
 
   # Specify model
   model = Sequential()
-  model.add(Dense(512, activation="linear", input_shape=(784,)))
+  model.add(Dense(700, activation="linear", input_shape=(3197,)))
   model.add(BatchNormalization())
   model.add(Dropout(0.2))
 
-  model.add(Dense(100, init="uniform",activation="linear"))
+  model.add(Dense(200, init="uniform",activation="relu"))
+  model.add(BatchNormalization())
+  model.add(Dropout(0.2))
+
+  model.add(Dense(40, init="uniform",activation="relu"))
   model.add(BatchNormalization())
   model.add(Dropout(0.2))
 
@@ -206,18 +218,17 @@ def NN(X, y, X_tst, y_tst):
   epochs = 20
 
   # Perform fit
-  history = model.fit(X, y,
+  history = model.fit(X, y_train_one_hot,
                       batch_size=batch_size,
                       epochs=epochs,
                       verbose=1,
                       shuffle=False,
-                      validation_data=(X_tst, y_tst))
+                      validation_data=(X_tst, y_test_one_hot))
 
 
   # Print results
-  score = model.evaluate(X_tst, y_tst, verbose=0)
+  score = model.evaluate(X_tst, y_test_one_hot, verbose=0)
   print('Test loss/accuracy: %g, %g' % (score[0], score[1]))
-  score_nn = score[1]
   return None
 
 def SMOTE_NN():
@@ -230,5 +241,5 @@ def SMOTE_NN():
 # TEST RUN
 ######################################################################
 
-pcaPlot(x_train_boot_T_rsc, 'avec normalisation')
-#SMOTE_plot() 
+#pcaPlot(x_train_boot_T_rsc, 'avec normalisation')
+#SMOTE_plot()
