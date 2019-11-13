@@ -39,7 +39,7 @@ def RPN(x):
         x_RPN = array numpy, la RPN du signal
         '''
     mean = np.mean(x,axis=1).reshape(x.shape[0],1)
-    return (x-mean)/meanReshape
+    return (x-mean)/mean
 
 def bootstrap(x_train,y_train) : 
     x_train1 = x_train[np.where(y_train == 1)[0]] #Separation du train_set selon le label
