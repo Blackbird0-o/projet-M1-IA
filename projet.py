@@ -6,12 +6,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
 
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.decomposition import PCA
 from sklearn.datasets import make_classification
 from sklearn.svm import LinearSVC
+from sklearn.metrics import confusion_matrix
 
 from mpl_toolkits.mplot3d import Axes3D 
+
+from scipy.signal import savgol_filter
 
 from imblearn.over_sampling import SMOTE
 from imblearn.base import BaseSampler
@@ -19,12 +23,23 @@ from imblearn.base import BaseSampler
 from collections import Counter # counts the number of elements per class ({0: 5050, 1: 37})
 
 from keras.models import Sequential
-from keras.layers import Activation, Dense, Dropout, Flatten, BatchNormalization, LSTM
+from keras.layers import Activation, Dense, Dropout, Flatten, BatchNormalization,CuDNNLSTM, LSTM,Conv1D,MaxPool1D,Permute,Reshape
 from keras.optimizers import RMSprop, adam
 from keras.utils import to_categorical
 
 ##########################################################################################################################
 #Fonctions
+def RPN(x):
+    '''
+    Calcule la RPN d'un signal (Relative Power Noise)
+    input :
+        x = array numpy, le signal dont on souhaite calculer la RPN
+        
+    output :
+        x_RPN = array numpy, la RPN du signal
+        '''
+    mean = np.mean(x,axis=1).reshape(x.shape[0],1)
+    return (x-mean)/meanReshape
 
 def bootstrap(x_train,y_train) : 
     x_train1 = x_train[np.where(y_train == 1)[0]] #Separation du train_set selon le label
@@ -127,14 +142,16 @@ def LSTM_net(X, y, X_tst, y_tst):
 
   # Specify model
   model = Sequential()
-  model.add(LSTM(8, return_sequences=True, input_shape=(3197,1)))
+  model.add(Conv1D(filters=16, kernel_size=11, activation='relu', input_shape=X.shape[1:]))
+  
+  model.add(CuDNNLSTM(50, return_sequences=False))
   model.add(BatchNormalization())
   model.add(Dropout(0.2))
   
-  model.add(LSTM(6, return_sequences=False))
+  model.add(Dense(10, activation="relu"))
   model.add(BatchNormalization())
-  model.add(Dropout(0.2))
-
+  
+  
   model.add(Dense(1, activation="sigmoid"))
 
   model.summary()
@@ -144,7 +161,7 @@ def LSTM_net(X, y, X_tst, y_tst):
 
   # Parameters
   batch_size = 64
-  epochs = 10
+  epochs = 20
 
   # Perform fit
   history = model.fit(X, y,
@@ -158,9 +175,132 @@ def LSTM_net(X, y, X_tst, y_tst):
   # Print results
   score = model.evaluate(X_tst, y_tst, verbose=0)
   print('Test loss/accuracy: %g, %g' % (score[0], score[1]))
-  return model
+  
+  plt.figure(figsize=(15, 5)) 
+  # Plot history for accuracy
+  plt.subplot(121)
+  plt.plot(history.history['acc'])
+  plt.plot(history.history['val_acc'])
+  plt.title('model accuracy -- MLP')
+  plt.ylabel('accuracy')
+  plt.xlabel('epoch')
+  plt.legend(['train', 'test'], loc='upper left')
+  # summarize history for loss
+  plt.subplot(122)
+  plt.plot(history.history['loss'])
+  plt.plot(history.history['val_loss'])
+  plt.title('model loss -- MLP')
+  plt.ylabel('loss')
+  plt.xlabel('epoch')
+  plt.legend(['train', 'test'], loc='upper left')
+  plt.tight_layout()
+
+  return model, history
+
+def net(X, y, X_tst, y_tst):
+  '''
+  Defines and fits a NN sequential model on X and y. It then tests the model with X_tst and y_tst
+  '''
+
+  # Specify model
+  model = Sequential()
+  model.add(Conv1D(filters=16, kernel_size=11, activation='relu', input_shape=X.shape[1:]))
+  model.add(MaxPool1D(strides=4))
+  model.add(BatchNormalization())
+  
+  model.add(Conv1D(filters=32, kernel_size=11, activation='relu'))
+  model.add(MaxPool1D(strides=4))
+  model.add(BatchNormalization())
+  
+  model.add(Conv1D(filters=64, kernel_size=11, activation='relu'))
+  model.add(MaxPool1D(strides=4))
+  model.add(BatchNormalization())
+  
+  model.add(Conv1D(filters=128, kernel_size=11, activation='relu'))
+  model.add(MaxPool1D(strides=4))
+  
+  model.add(Flatten())
+  model.add(Dropout(0.25))
+  
+  model.add(Dense(64,activation="relu"))
+  
+  #model.add(Permute((2,1)))
+  
+  model.add(Reshape((-1,1)))
+  
+  model.add(CuDNNLSTM(16, return_sequences=True))
+  model.add(CuDNNLSTM(32, return_sequences=True))
+  model.add(CuDNNLSTM(64, return_sequences=True))
+  model.add(CuDNNLSTM(128))
+  model.add(Dropout(0.25))
+  
+  model.add(Dense(32,activation="relu"))
+  
+  model.add(Dense(1, activation="sigmoid"))
+  
+
+  model.summary()
+  model.compile(loss="binary_crossentropy",
+                optimizer=adam(),
+                metrics=["accuracy"])
+
+  # Parameters
+  batch_size = 32
+  epochs = 60
+  
+  x_train, x_val, y_train, y_val = train_test_split(X, y, stratify=y,
+                                                  test_size=0.3, random_state=123)
+
+  # Perform fit
+  history = model.fit(x_train, y_train,
+                      batch_size=batch_size,
+                      epochs=epochs,
+                      verbose=1,
+                      shuffle=False,
+                      validation_data=(x_val, y_val))
 
 
+  # Print results
+  score = model.evaluate(X_tst, y_tst, verbose=0)
+  print('Test loss/accuracy: %g, %g' % (score[0], score[1]))
+  
+  plt.figure(figsize=(15, 5)) 
+  # Plot history for accuracy
+  plt.subplot(121)
+  plt.plot(history.history['acc'])
+  plt.plot(history.history['val_acc'])
+  plt.title('model accuracy -- MLP')
+  plt.ylabel('accuracy')
+  plt.xlabel('epoch')
+  plt.legend(['train', 'test'], loc='upper left')
+  # summarize history for loss
+  plt.subplot(122)
+  plt.plot(history.history['loss'])
+  plt.plot(history.history['val_loss'])
+  plt.title('model loss -- MLP')
+  plt.ylabel('loss')
+  plt.xlabel('epoch')
+  plt.legend(['train', 'test'], loc='upper left')
+  plt.tight_layout()
+
+  return model, history
+
+
+def scale_datasets(X_train, X_test, param='standardScaling', reshape=True):
+    if param == 'standardScaling':
+        if reshape:
+            
+            return StandardScaler().fit_transform(X_train).reshape(-1,3197,1), StandardScaler().fit_transform(X_test).reshape(-1,3197,1)
+        else :
+            return StandardScaler().fit_transform(X_train), StandardScaler().fit_transform(X_test)
+    else:
+        X_train = np.transpose(X_train)
+        X_test = np.transpose(X_test)
+        
+        if reshape:
+            return np.transpose(StandardScaler().fit_transform(X_train)).reshape(-1,3197,1), np.transpose(StandardScaler().fit_transform(X_test)).reshape(-1,3197,1)
+        else :
+            return np.transpose(StandardScaler().fit_transform(X_train)), np.transpose(StandardScaler().fit_transform(X_test))
 
 ######################################################################################
   
@@ -174,84 +314,48 @@ x_train,y_train,x_test,y_test = dataload()
 # création du vecteur temps (h)
 t = np.arange(len(x_train[0])) * (36.0/60.0)
 dt = 36* 60 # sampling rate (s) les données sont prises avec 36min d'écart
-
 f = np.fft.fftfreq(x_train.shape[1],dt) # vecteur fréquence en (Hz)
+
+#savgol filter
+#x_train = savgol_filter(x_train,309,3) # cf script bruit.py pour parametres optimaux
+#x_test = savgol_filter(x_test,309,3)
 
 x_train_boot,y_train_boot = bootstrap(x_train,y_train)
 x_test_boot,y_test_boot = bootstrap(x_test,y_test)
 
+# Resampling with SMOTE (oversampling algorithm)
+x_train_SMOTE, y_train_SMOTE = SMOTE(random_state=0).fit_resample(x_train, y_train)
+x_test_SMOTE, y_test_SMOTE = SMOTE(random_state=0,k_neighbors=4).fit_resample(x_test, y_test)
+
 
 # Scaling
-x_train_sc = StandardScaler().fit_transform(x_train_boot).reshape(10100,3197,1)
-x_test_sc = StandardScaler().fit_transform(x_test_boot).reshape(1130,3197,1)
+x_train_sc, x_test_sc = scale_datasets(x_train, x_test)
+x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_test_boot)
+x_train_SMOTE_sc, x_test_SMOTE_sc = scale_datasets(x_train_SMOTE, x_test_SMOTE)
 
 # Transposing
+'''
 x_train_boot_T = np.transpose(x_train_boot)
 x_train_boot_T_rsc = np.transpose(StandardScaler().fit_transform(x_train_boot_T)).reshape(10100,3197,1,1)
 x_test_boot_T = np.transpose(x_test_boot)
 x_test_boot_T_rsc = np.transpose(StandardScaler().fit_transform(x_test_boot_T)).reshape(1130,3197,1,1)
-
-model=LSTM_net(x_train_sc, y_train_boot, x_test_sc, y_test_boot)
-
-# Resampling with SMOTE (oversampling algorithm)
-#x_train_SMOTE, y_train_SMOTE = SMOTE(random_state=0).fit_resample(x_train, y_train)
-
-# Neural Net with SMOTE
-# PBL : dimensions des layers denses a check
-def NN(X, y, X_tst, y_tst):
-  '''
-  Defines and fits a NN sequential model on X and y. It then tests the model with X_tst and y_tst
-  '''
-  # Work with one-hot encoding of labels
-  y_train_one_hot = to_categorical(y, 2)
-  y_test_one_hot = to_categorical(y_test, 2)
-
-  # Specify model
-  model = Sequential()
-  model.add(Dense(700, activation="linear", input_shape=(3197,)))
-  model.add(BatchNormalization())
-  model.add(Dropout(0.2))
-
-  model.add(Dense(200, init="uniform",activation="relu"))
-  model.add(BatchNormalization())
-  model.add(Dropout(0.2))
-
-  model.add(Dense(40, init="uniform",activation="relu"))
-  model.add(BatchNormalization())
-  model.add(Dropout(0.2))
-
-  model.add(Dense(2, activation="softmax"))
-
-  model.summary()
-  model.compile(loss="categorical_crossentropy",
-                optimizer=adam(),
-                metrics=["accuracy"])
-
-  # Parameters
-  batch_size = 64
-  epochs = 20
-
-  # Perform fit
-  history = model.fit(X, y_train_one_hot,
-                      batch_size=batch_size,
-                      epochs=epochs,
-                      verbose=1,
-                      shuffle=False,
-                      validation_data=(X_tst, y_test_one_hot))
-
-
-  # Print results
-  score = model.evaluate(X_tst, y_test_one_hot, verbose=0)
-  print('Test loss/accuracy: %g, %g' % (score[0], score[1]))
-  return None
+'''
 
 
 
 
 
-######################################################################
-# TEST RUN
-######################################################################
+#model, history = net(x_train_boot_sc, y_train_boot, x_test_boot_sc, y_test_boot)
+model, history = net(x_train_SMOTE_sc, y_train_SMOTE, x_test_SMOTE_sc, y_test_SMOTE)
+#model, history = net(x_train_sc, y_train, x_test_sc, y_test)
 
-#pcaPlot(x_train_boot_T_rsc, 'avec normalisation')
-#SMOTE_plot()
+y_pred = model.predict(x=x_test_sc)
+predthr = np.where(y_pred > 0.5, 1, 0)
+confusion = confusion_matrix(y_test, predthr)
+
+print('recap scores : ')
+print('Accuracy : ',(confusion[0,0]+confusion[1,1])/np.sum(confusion))
+print('Recall : ',(confusion[0,0])/np.sum(confusion[0]))
+print('Precision : ',(confusion[0,0])/(confusion[0,0]+confusion[1,0]))
+#print('F-measure : ',)
+
