@@ -371,6 +371,7 @@ x_train_boot_Rsc, x_test_boot_Rsc = scale_datasets(x_train_boot, x_test_boot)
 x_train_SMOTE_sc, x_test_SMOTE_sc = scale_datasets(x_train_SMOTE, x_test_SMOTE)
 x_train_T_sc, x_test_T_sc = scale_datasets(x_train, x_test, param= 'transpose')
 x_train_boot_T_sc, x_test_boot_T_sc = scale_datasets(x_train_boot, x_test_boot, param= 'transpose')
+x_train_SMOTE_sc, x_test_SMOTE_sc = scale_datasets(x_train_SMOTE, x_test_SMOTE, param= 'transpose')
 
 
 
