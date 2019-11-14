@@ -12,6 +12,12 @@ from sklearn.decomposition import PCA
 from sklearn.datasets import make_classification
 from sklearn.svm import LinearSVC
 from sklearn.metrics import confusion_matrix
+from sklearn.svm import SVC
+from sklearn.metrics import f1_score
+from sklearn.metrics import precision_score
+from sklearn.metrics import recall_score
+from sklearn.metrics import mean_squared_error
+from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier,AdaBoostClassifier
 
 from mpl_toolkits.mplot3d import Axes3D 
 
@@ -134,6 +140,99 @@ def SMOTE_plot(x_train, y_train):
   fig.tight_layout()
   plt.show()
   return None
+
+def getScores(pred, result): 
+  
+    print('Precision :') 
+    print(precision_score(result, pred))
+
+    print('Recall :') 
+    print(recall_score(result, pred))
+
+    print('F1 Score :') 
+    scoref1 = f1_score(result, pred)
+    print(scoref1) 
+     
+    print('MSE :') 
+    modelError = mean_squared_error(result, pred)
+    print(modelError) 
+    
+
+    print('') 
+    print('confusion_matrix : ')
+    cm_svc  = confusion_matrix(result, pred)
+    print(cm_svc ) 
+    print('')  
+    return scoref1, modelError, cm_svc
+
+    
+def SVM(x_train,y_train,x_test,y_test) :
+  
+  x_train = np.abs(np.fft.fft(x_train))[0:,0:1000]
+  x_test = np.abs(np.fft.fft(x_test))[0:,0:1000]
+  
+  x_train_boot,y_train_boot = bootstrap(x_train,y_train)
+  x_train_sc, x_test_sc = scale_datasets(x_train, x_test, param='transpose',reshape=False)
+  x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_test_boot, param='transpose',reshape=False)
+
+  
+  
+  clf_svc = SVC(gamma='auto', kernel='linear')
+  
+  model = clf_svc.fit(x_train_boot_sc, y_train_boot)
+  
+  return model.predict(x_test_sc)
+
+def forest(x_train,y_train,x_test,y_test):
+  
+  x_train = np.abs(np.fft.fft(x_train))[0:,0:1000]
+  x_test = np.abs(np.fft.fft(x_test))[0:,0:1000]
+  
+  x_train_boot,y_train_boot = bootstrap(x_train,y_train)
+  x_train_sc, x_test_sc = scale_datasets(x_train, x_test, param='transpose',reshape=False)
+  x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_test_boot, param='transpose',reshape=False)
+
+  
+  clf = RandomForestClassifier(n_estimators=100, max_depth=2,random_state=0)
+  
+  model = clf.fit(x_train_boot_sc, y_train_boot)
+  
+  return model.predict(x_test_sc)
+
+def maxiforest(x_train,y_train,x_test,y_test):
+  
+  x_train = np.abs(np.fft.fft(x_train))[0:,0:1000]
+  x_test = np.abs(np.fft.fft(x_test))[0:,0:1000]
+  
+  x_train_boot,y_train_boot = bootstrap(x_train,y_train)
+  x_train_sc, x_test_sc = scale_datasets(x_train, x_test, param='transpose',reshape=False)
+  x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_test_boot, param='transpose',reshape=False)
+
+  
+  clf = ExtraTreesClassifier(n_estimators=100, max_depth=2,random_state=0)
+  
+  model = clf.fit(x_train_boot_sc, y_train_boot)
+  
+  return model.predict(x_test_sc)
+
+def Ada(x_train,y_train,x_test,y_test):
+  
+  x_train = np.abs(np.fft.fft(x_train))[0:,0:1000]
+  x_test = np.abs(np.fft.fft(x_test))[0:,0:1000]
+  
+  x_train_boot,y_train_boot = bootstrap(x_train,y_train)
+  x_train_sc, x_test_sc = scale_datasets(x_train, x_test, param='standardScaling',reshape=False)
+  x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_test_boot, param='standardScaling',reshape=False)
+
+  
+  clf = AdaBoostClassifier(n_estimators=100, random_state=0)
+  
+  model = clf.fit(x_train_boot_sc, y_train_boot)
+  
+  return model.predict(x_test_sc)
+
+
+
 
 def LSTM_net(X, y, X_tst, y_tst):
   '''
@@ -332,22 +431,25 @@ x_test_SMOTE, y_test_SMOTE = SMOTE(random_state=0,k_neighbors=4).fit_resample(x_
 
 
 # Scaling
-x_train_sc, x_test_sc = scale_datasets(x_train, x_test)
-x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_test_boot)
+x_train_sc, x_test_sc = scale_datasets(x_train, x_test, param='transpose',reshape=False)
+x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_test_boot, param='transpose',reshape=False)
+x_train_Rsc, x_test_Rsc = scale_datasets(x_train, x_test)
+x_train_boot_Rsc, x_test_boot_Rsc = scale_datasets(x_train_boot, x_test_boot)
 x_train_SMOTE_sc, x_test_SMOTE_sc = scale_datasets(x_train_SMOTE, x_test_SMOTE)
 x_train_T_sc, x_test_T_sc = scale_datasets(x_train, x_test, param= 'transpose')
 x_train_boot_T_sc, x_test_boot_T_sc = scale_datasets(x_train_boot, x_test_boot, param= 'transpose')
 
+prediction = maxiforest(x_train,y_train,x_test,y_test)
+getScores(y_test, prediction)
 
 #------------NN on all processed datasets-------------
-#model, history = net(x_train_boot_sc, y_train_boot, x_test_boot_sc, y_test_boot)
+#model, history = net(x_train_boot_Rsc, y_train_boot, x_test_boot_Rsc, y_test_boot)
 #model, history = net(x_train_SMOTE_sc, y_train_SMOTE, x_test_SMOTE_sc, y_test_SMOTE)
-#model, history = net(x_train_sc, y_train, x_test_sc, y_test)
-#model_LSTM, history_LSTM = LSTM_net(x_train_boot_T_sc, y_train_boot, x_test_boot_T_sc, y_test_boot)
+#model, history = net(x_train_Rsc, y_train, x_test_Rsc, y_test)
 '''
-model, history = net(x_train_T_sc, y_train, x_test_T_sc, y_test)
+model, history = net(x_train_T_Rsc, y_train, x_test_T_Rsc, y_test)
 
-y_pred = model.predict(x=x_test_sc)
+y_pred = model.predict(x=x_test_Rsc)
 predthr = np.where(y_pred > 0.5, 1, 0)
 confusion = confusion_matrix(y_test, predthr)
 
@@ -358,6 +460,4 @@ print('Precision : ',(confusion[0,0])/(confusion[0,0]+confusion[1,0]))
 print(confusion)
 #print('F-measure : ',)
 '''
-b = 'malalz'
-print('prout')
 
