@@ -8,17 +8,8 @@ from scipy.signal import savgol_filter
 from scipy.optimize import minimize
 from tqdm import tqdm
 
-def RPN(x):
-    '''
-    Calcule la RPN d'un signal (Relative Power Noise)
-    input :
-        x = array numpy, le signal dont on souhaite calculer la RPN
-        
-    output :
-        x_RPN = array numpy, la RPN du signal
-        '''
-    mean = np.mean(x,axis=1).reshape(x.shape[0],1)
-    return (x-mean)/mean
+
+
 
 def loss(x,s,s_fft) :
     k = 2*int(np.abs(x[0])) + 1     # k doit etre un entier positif impair
@@ -55,16 +46,10 @@ plt.close('all')
 
 #-------------Preliminray Data Exploration-------------
 # Loading datas
-data_train = pd.read_csv('exoTrain.csv')
-data_test = pd.read_csv('exoTest.csv')
+x_train,y_train,x_test,y_test = dataload()
 
-# transformation des label en array de 0 et 1
-y_train = np.array(data_train["LABEL"])-1
-y_test = np.array(data_test['LABEL'])-1
-
-# on charge les features
-x_train = np.array(data_train.drop('LABEL',axis=1))
-x_test = np.array(data_test.drop('LABEL',axis=1))
+x_train = x_test
+y_train = y_test
 
 # création du vecteur temps (h)
 t = np.arange(len(x_train[0])) * (36.0/60.0)
@@ -79,7 +64,7 @@ s_fft = np.abs(np.fft.fft(s))[0:,0:1599]                        # FFT du signal
 features = np.zeros((s.shape[0],2))
 x_train_filtered = np.zeros(x_train.shape)
 
-for i in tqdm(range(0,500)):#x_train_filtered.shape[0])) :
+for i in tqdm(range(0,x_train_filtered.shape[0])) :
     
     x0 = [154,3]
     res = minimize(loss,x0,args=(s[i],s_fft[i]),tol=1e-4,method='Powell')
@@ -106,6 +91,26 @@ for i in tqdm(range(0,500)):#x_train_filtered.shape[0])) :
     features[i] = np.array([k,n])
     x_train_filtered[i] = savgol_filter(s[i],k,n)  
     
+
+x_features = np.concatenate((features,s_fft[0:,0:10]),axis=1)
+x_features = np.concatenate((x_features,x_train_filtered),axis=1)
+
+df = pd.DataFrame(x_features)
+
+headers = ['Windows size','Polynom degrees']
+
+for i in range(10) :
+    headers.append('FFT '+str(i+1))
+
+for i in range(x_train_filtered.shape[1]) :
+    headers.append('signal filtred '+str(i+1))
+
+df.columns = headers
+
+df.to_csv(r'new_features_test.csv')
+
+
+
 
 # lets visualize datas in 3d
 fig = plt.figure()
