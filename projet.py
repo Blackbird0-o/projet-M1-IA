@@ -160,10 +160,10 @@ def getScores(pred, result):
 
     print('') 
     print('confusion_matrix : ')
-    cm_svc  = confusion_matrix(result, pred)
-    print(cm_svc ) 
+    confusion_matrix  = confusion_matrix(result, pred)
+    print(confusion_matrix ) 
     print('')  
-    return scoref1, modelError, cm_svc
+    return scoref1, modelError, confusion_matrix
 
     
 def SVM(x_train,y_train,x_test,y_test) :
@@ -231,73 +231,6 @@ def Ada(x_train,y_train,x_test,y_test):
   
   return model.predict(x_test_sc)
 
-
-
-
-def LSTM_net(X, y, X_tst, y_tst):
-  '''
-  Defines and fits a NN sequential model on X and y. It then tests the model with X_tst and y_tst
-  '''
-
-  # Specify model
-  model = Sequential()
-  model.add(Conv1D(filters=16, kernel_size=11, activation='relu', input_shape=X.shape[1:]))
-  
-  model.add(CuDNNLSTM(50, return_sequences=False))
-  model.add(BatchNormalization())
-  model.add(Dropout(0.2))
-  
-  model.add(Dense(10, activation="relu"))
-  model.add(BatchNormalization())
-  
-  
-  model.add(Dense(1, activation="sigmoid"))
-
-  model.summary()
-  model.compile(loss="binary_crossentropy",
-                optimizer=adam(),
-                metrics=["accuracy"])
-
-  # Parameters
-  batch_size = 64
-  epochs = 20
-
-  x_train, x_val, y_train, y_val = train_test_split(X, y, stratify=y,
-                                                  test_size=0.3, random_state=123)
-
-  # Perform fit
-  history = model.fit(x_train, y_train,
-                      batch_size=batch_size,
-                      epochs=epochs,
-                      verbose=1,
-                      shuffle=False,
-                      validation_data=(x_val, y_val))
-
-
-  # Print results
-  score = model.evaluate(X_tst, y_tst, verbose=0)
-  print('Test loss/accuracy: %g, %g' % (score[0], score[1]))
-  
-  plt.figure(figsize=(15, 5)) 
-  # Plot history for accuracy
-  plt.subplot(121)
-  plt.plot(history.history['acc'])
-  plt.plot(history.history['val_acc'])
-  plt.title('model accuracy -- MLP')
-  plt.ylabel('accuracy')
-  plt.xlabel('epoch')
-  plt.legend(['train', 'test'], loc='upper left')
-  # summarize history for loss
-  plt.subplot(122)
-  plt.plot(history.history['loss'])
-  plt.plot(history.history['val_loss'])
-  plt.title('model loss -- MLP')
-  plt.ylabel('loss')
-  plt.xlabel('epoch')
-  plt.legend(['train', 'test'], loc='upper left')
-  plt.tight_layout()
-
-  return model, history
 
 def net(X, y, X_tst, y_tst):
   '''
@@ -385,7 +318,7 @@ def net(X, y, X_tst, y_tst):
   plt.legend(['train', 'test'], loc='upper left')
   plt.tight_layout()
 
-  return model, history
+  return model, model.predict(x=X_tst)
 
 
 def scale_datasets(X_train, X_test, param='standardScaling', reshape=True):
@@ -439,25 +372,24 @@ x_train_SMOTE_sc, x_test_SMOTE_sc = scale_datasets(x_train_SMOTE, x_test_SMOTE)
 x_train_T_sc, x_test_T_sc = scale_datasets(x_train, x_test, param= 'transpose')
 x_train_boot_T_sc, x_test_boot_T_sc = scale_datasets(x_train_boot, x_test_boot, param= 'transpose')
 
+
+
+#------------Classifiers on differently processed datasets-------------
 prediction = maxiforest(x_train,y_train,x_test,y_test)
 getScores(y_test, prediction)
 
-#------------NN on all processed datasets-------------
-#model, history = net(x_train_boot_Rsc, y_train_boot, x_test_boot_Rsc, y_test_boot)
-#model, history = net(x_train_SMOTE_sc, y_train_SMOTE, x_test_SMOTE_sc, y_test_SMOTE)
-#model, history = net(x_train_Rsc, y_train, x_test_Rsc, y_test)
+
+
+
+#------------NN on different processed datasets-------------
+#model, y_pred = net(x_train_boot_Rsc, y_train_boot, x_test_boot_Rsc, y_test_boot)
+#model, y_pred = net(x_train_SMOTE_sc, y_train_SMOTE, x_test_SMOTE_sc, y_test_SMOTE)
+#model, y_pred = net(x_train_Rsc, y_train, x_test_Rsc, y_test)
+
 '''
-model, history = net(x_train_T_Rsc, y_train, x_test_T_Rsc, y_test)
+model, y_pred = net(x_train_T_Rsc, y_train, x_test_T_Rsc, y_test)
 
-y_pred = model.predict(x=x_test_Rsc)
 predthr = np.where(y_pred > 0.5, 1, 0)
-confusion = confusion_matrix(y_test, predthr)
-
-print('recap scores : ')
-print('Accuracy : ',(confusion[0,0]+confusion[1,1])/np.sum(confusion))
-print('Recall : ',(confusion[0,0])/np.sum(confusion[0]))
-print('Precision : ',(confusion[0,0])/(confusion[0,0]+confusion[1,0]))
-print(confusion)
-#print('F-measure : ',)
+getScores(y_test, y_pred)
 '''
 
