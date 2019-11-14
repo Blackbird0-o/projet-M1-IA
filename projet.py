@@ -163,13 +163,16 @@ def LSTM_net(X, y, X_tst, y_tst):
   batch_size = 64
   epochs = 20
 
+  x_train, x_val, y_train, y_val = train_test_split(X, y, stratify=y,
+                                                  test_size=0.3, random_state=123)
+
   # Perform fit
-  history = model.fit(X, y,
+  history = model.fit(x_train, y_train,
                       batch_size=batch_size,
                       epochs=epochs,
                       verbose=1,
                       shuffle=False,
-                      validation_data=(X_tst, y_tst))
+                      validation_data=(x_val, y_val))
 
 
   # Print results
@@ -293,7 +296,7 @@ def scale_datasets(X_train, X_test, param='standardScaling', reshape=True):
             return StandardScaler().fit_transform(X_train).reshape(-1,3197,1), StandardScaler().fit_transform(X_test).reshape(-1,3197,1)
         else :
             return StandardScaler().fit_transform(X_train), StandardScaler().fit_transform(X_test)
-    else:
+    elif param == 'transpose':
         X_train = np.transpose(X_train)
         X_test = np.transpose(X_test)
         
@@ -332,22 +335,17 @@ x_test_SMOTE, y_test_SMOTE = SMOTE(random_state=0,k_neighbors=4).fit_resample(x_
 x_train_sc, x_test_sc = scale_datasets(x_train, x_test)
 x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_test_boot)
 x_train_SMOTE_sc, x_test_SMOTE_sc = scale_datasets(x_train_SMOTE, x_test_SMOTE)
-
-# Transposing
-'''
-x_train_boot_T = np.transpose(x_train_boot)
-x_train_boot_T_rsc = np.transpose(StandardScaler().fit_transform(x_train_boot_T)).reshape(10100,3197,1,1)
-x_test_boot_T = np.transpose(x_test_boot)
-x_test_boot_T_rsc = np.transpose(StandardScaler().fit_transform(x_test_boot_T)).reshape(1130,3197,1,1)
-'''
+x_train_T_sc, x_test_T_sc = scale_datasets(x_train, x_test, param= 'transpose')
+x_train_boot_T_sc, x_test_boot_T_sc = scale_datasets(x_train_boot, x_test_boot, param= 'transpose')
 
 
-
-
-
+#------------NN on all processed datasets-------------
 #model, history = net(x_train_boot_sc, y_train_boot, x_test_boot_sc, y_test_boot)
-model, history = net(x_train_SMOTE_sc, y_train_SMOTE, x_test_SMOTE_sc, y_test_SMOTE)
+#model, history = net(x_train_SMOTE_sc, y_train_SMOTE, x_test_SMOTE_sc, y_test_SMOTE)
 #model, history = net(x_train_sc, y_train, x_test_sc, y_test)
+#model_LSTM, history_LSTM = LSTM_net(x_train_boot_T_sc, y_train_boot, x_test_boot_T_sc, y_test_boot)
+'''
+model, history = net(x_train_T_sc, y_train, x_test_T_sc, y_test)
 
 y_pred = model.predict(x=x_test_sc)
 predthr = np.where(y_pred > 0.5, 1, 0)
@@ -357,5 +355,9 @@ print('recap scores : ')
 print('Accuracy : ',(confusion[0,0]+confusion[1,1])/np.sum(confusion))
 print('Recall : ',(confusion[0,0])/np.sum(confusion[0]))
 print('Precision : ',(confusion[0,0])/(confusion[0,0]+confusion[1,0]))
+print(confusion)
 #print('F-measure : ',)
+'''
+b = 'malalz'
+print('prout')
 
