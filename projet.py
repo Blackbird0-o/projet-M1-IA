@@ -46,8 +46,20 @@ def RPN(x):
         '''
     mean = np.mean(x,axis=1).reshape(x.shape[0],1)
     return (x-mean)/mean
-
-def bootstrap(x_train,y_train) : 
+  
+def shuffle(x,y):
+    # shuffle
+    index = np.arange(y.shape[0])
+    np.random.shuffle(index)
+    x = x[index]
+    y = y[index]
+    
+    return x,y
+    
+def bootstrap(x_train,y_train,inv=True) :
+    if inv :
+      x_train,y_train = inv_data(x_train,y_train)
+      
     x_train1 = x_train[np.where(y_train == 1)[0]] #Separation du train_set selon le label
     x_train0 = x_train[np.where(y_train == 0)[0]]
     index_train = np.random.randint(0,x_train1.shape[0] , size=x_train0.shape[0]) #genere une liste d'index 
@@ -56,15 +68,11 @@ def bootstrap(x_train,y_train) :
     y_train_boot = np.concatenate((np.ones(x_train0.shape[0]),np.zeros(x_train0.shape[0]))) #on génère une liste de labels avec autant de 1 que de 0
     x_train_boot = np.concatenate((x_train_1_boot,x_train0)) #on rassemble les données une fois équilibrées
     
-    # shuffle
-    index = np.arange(y_train_boot.shape[0])
-    np.random.shuffle(index)
-    x_train_boot = x_train_boot[index]
-    y_train_boot = y_train_boot[index]
+    x_train_boot,y_train_boot  = shuffle(x_train_boot,y_train_boot)
     
     return x_train_boot,y_train_boot
 
-def dataload(path='data/') :
+def dataload(path='data/',merge=True) :
     # Loading datas
     data_train = pd.read_csv(path+'exoTrain.csv')
     data_test = pd.read_csv(path+'exoTest.csv')
@@ -76,6 +84,25 @@ def dataload(path='data/') :
     # on charge les features
     x_train = np.array(data_train.drop('LABEL',axis=1))
     x_test = np.array(data_test.drop('LABEL',axis=1))
+    
+    if merge :
+      data = np.concatenate((x_train,x_test))
+      y = np.concatenate((y_train,y_test))
+      data0 = data[np.where(y==0)[0]]
+      y0 = y[np.where(y==0)[0]]
+      data1 = data[np.where(y==1)[0]]
+      y1 = y[np.where(y==1)[0]]
+      
+      x_train0,x_test0,y_train0,y_test0 = train_test_split(data0,y0, test_size = 0.1)
+      x_train1,x_test1,y_train1,y_test1 = train_test_split(data1,y1, test_size = 0.1)
+      
+      x_train = np.concatenate((x_train0,x_train1))
+      y_train = np.concatenate((y_train0,y_train1))
+      x_test = np.concatenate((x_test0,x_test1))
+      y_test = np.concatenate((y_test0,y_test1))
+      
+      x_train,y_train = shuffle(x_train,y_train)
+      x_test,y_test = shuffle(x_test,y_test)
     
     return x_train,y_train,x_test,y_test
 
@@ -172,8 +199,8 @@ def SVM(x_train,y_train,x_test,y_test) :
   x_test = np.abs(np.fft.fft(x_test))[0:,0:1000]
   
   x_train_boot,y_train_boot = bootstrap(x_train,y_train)
-  x_train_sc, x_test_sc = scale_datasets(x_train, x_test, param='transpose',reshape=False)
-  x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_test_boot, param='transpose',reshape=False)
+  x_train_sc, x_test_sc = scale_datasets(x_train, x_test, param='norm_flatten',reshape=False)
+  x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_test_boot, param='norm_flatten',reshape=False)
 
   
   
@@ -189,11 +216,11 @@ def forest(x_train,y_train,x_test,y_test):
   x_test = np.abs(np.fft.fft(x_test))[0:,0:10]
   
   x_train_boot,y_train_boot = bootstrap(x_train,y_train)
-  x_train_sc, x_test_sc = scale_datasets(x_train, x_test, param='transpose',reshape=False)
-  x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_test_boot, param='transpose',reshape=False)
+  x_train_sc, x_test_sc = scale_datasets(x_train, x_test, param='norm_flatten',reshape=False)
+  x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_test_boot, param='norm_flatten',reshape=False)
 
   
-  clf = RandomForestClassifier(n_estimators=100, max_depth=2,random_state=0)
+  clf = RandomForestClassifier(n_estimators=500, max_depth=3,random_state=0)
   
   model = clf.fit(x_train_boot_sc, y_train_boot)
   
@@ -201,15 +228,15 @@ def forest(x_train,y_train,x_test,y_test):
 
 def maxiforest(x_train,y_train,x_test,y_test):
   
-  x_train = np.abs(np.fft.fft(x_train))[0:,0:1000]
-  x_test = np.abs(np.fft.fft(x_test))[0:,0:1000]
+  x_train = np.abs(np.fft.fft(x_train))[0:,0:10]
+  x_test = np.abs(np.fft.fft(x_test))[0:,0:10]
   
   x_train_boot,y_train_boot = bootstrap(x_train,y_train)
-  x_train_sc, x_test_sc = scale_datasets(x_train, x_test, param='flatten',reshape=False)
-  x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_test_boot, param='flatten',reshape=False)
+  x_train_sc, x_test_sc = scale_datasets(x_train, x_test, param='norm_flatten',reshape=False)
+  x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_test_boot, param='norm_flatten',reshape=False)
 
   
-  clf = ExtraTreesClassifier(n_estimators=100, max_depth=2,random_state=0)
+  clf = ExtraTreesClassifier(n_estimators=500, max_depth=3,random_state=0)
   
   model = clf.fit(x_train_boot_sc, y_train_boot)
   
@@ -221,8 +248,8 @@ def Ada(x_train,y_train,x_test,y_test):
   x_test = np.abs(np.fft.fft(x_test))[0:,0:1000]
   
   x_train_boot,y_train_boot = bootstrap(x_train,y_train)
-  x_train_sc, x_test_sc = scale_datasets(x_train, x_test, param='standardScaling',reshape=False)
-  x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_test_boot, param='standardScaling',reshape=False)
+  x_train_sc, x_test_sc = scale_datasets(x_train, x_test, param='norm_flatten',reshape=False)
+  x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_test_boot, param='norm_flatten',reshape=False)
 
   
   clf = AdaBoostClassifier(n_estimators=100, random_state=0)
@@ -332,25 +359,41 @@ def scale_datasets(X_train, X_test, param='standardScaling', reshape=True):
       return SC.transform(X_train).reshape(train_shape[0],train_shape[1],1), SC.transform(X_test).reshape(test_shape[0],test_shape[1],1)
     else :
       return SC.transform(X_train), SC.transform(X_test)
-    '''
+    
   elif param == 'transpose':
     X_train = np.transpose(X_train)
+    X_test = np.tile(X_test,(10,1))[0:train_shape[0]]
     X_test = np.transpose(X_test)
     SC.fit(X_train)
     if reshape:
-      return np.transpose(SC.transform(X_train)).reshape(train_shape[0],train_shape[1],1), np.transpose(SC.transform(X_test)).reshape(test_shape[0],test_shape[1],1)
+      return np.transpose(SC.transform(X_train)).reshape(train_shape[0],train_shape[1],1), np.transpose(SC.transform(X_test)).reshape(test_shape[0],test_shape[1],1)[0:test_shape[0]]
     else :
-      return np.transpose(SC.transform(X_train)), np.transpose(SC.transform(X_test))
-    '''
+      return np.transpose(SC.transform(X_train)), np.transpose(SC.transform(X_test))[0:test_shape[0]]
+    
   elif param == 'flatten':
     X_train = X_train.flatten().reshape((-1,1))
-    print(X_train.shape)
     X_test = X_test.flatten().reshape((-1,1))
     SC.fit(X_train)
     if reshape:
       return SC.transform(X_train).reshape(train_shape[0],train_shape[1],1), SC.transform(X_test).reshape(test_shape[0],test_shape[1],1)
     else :
       return SC.transform(X_train).reshape(train_shape[0],train_shape[1]), SC.transform(X_test).reshape(test_shape[0],test_shape[1])
+  
+  elif param == 'norm':
+    norm_train = np.linalg.norm(X_train,axis=1).reshape(-1,1)
+    norm_test = np.linalg.norm(X_test,axis=1).reshape(-1,1)
+    if reshape:
+      return (X_train/norm_train).reshape(train_shape[0],train_shape[1],1), (X_test/norm_test).reshape(test_shape[0],test_shape[1],1)
+    else :
+      return X_train/norm_train, X_test/norm_test
+    
+  elif param == 'norm_flatten':
+    norm_train = np.linalg.norm(X_train)
+    norm_test = np.linalg.norm(X_test,axis=1).reshape(-1,1)
+    if reshape:
+      return (X_train/norm_train).reshape(train_shape[0],train_shape[1],1), (X_test/norm_train).reshape(test_shape[0],test_shape[1],1)
+    else :
+      return X_train/norm_train, X_test/norm_train
 
 def inv_data(X, y):
   X_flipped = np.flip(X[np.where(y == 1)[0]], 1)
@@ -364,7 +407,7 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 
 plt.close('all')
 
-x_train,y_train,x_test,y_test = dataload()
+x_train,y_train,x_test,y_test = dataload(merge=True)
 
 # création du vecteur temps (h)
 t = np.arange(len(x_train[0])) * (36.0/60.0)
@@ -391,11 +434,18 @@ x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_test_boot, para
 
 
 #------------Classifiers on differently processed datasets-------------
+print("SVM")
+#prediction = SVM(x_train,y_train,x_test,y_test)
+#getScores(y_test, prediction)
+print('random forest')
 prediction = forest(x_train,y_train,x_test,y_test)
 getScores(y_test, prediction)
-
-
-
+print('maxi trees')
+prediction = maxiforest(x_train,y_train,x_test,y_test)
+getScores(y_test, prediction)
+print('adaboost')
+#prediction = Ada(x_train,y_train,x_test,y_test)
+#getScores(y_test, prediction)
 
 #------------NN on different processed datasets-------------
 #model, y_pred = net(x_train_boot_Rsc, y_train_boot, x_test_boot_Rsc, y_test_boot)
