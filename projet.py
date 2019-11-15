@@ -79,7 +79,7 @@ def dataload(path='data/') :
     
     return x_train,y_train,x_test,y_test
 
-def pcaPlot(X, descr= 'temporel',plot_samples = 500):
+def pcaPlot(X, y, descr= 'temporel',plot_samples = 500):
   '''
   Defines and 10 components PCA of the dataset X and plots the first 3
   '''
@@ -98,7 +98,7 @@ def pcaPlot(X, descr= 'temporel',plot_samples = 500):
   x_PCA_plot = x_PCA[0:plot_samples]
 
   for target, color in zip(targets,colors):
-      indexes = np.where(y_train_boot[0:plot_samples] == target)
+      indexes = np.where(y[0:plot_samples] == target)
       ax.scatter(x_PCA_plot[indexes,0]
                 , x_PCA_plot[indexes,1],
                 x_PCA_plot[indexes,2]
