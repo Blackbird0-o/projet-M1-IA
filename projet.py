@@ -160,10 +160,10 @@ def getScores(pred, result):
 
     print('') 
     print('confusion_matrix : ')
-    confusion_matrix  = confusion_matrix(result, pred)
-    print(confusion_matrix ) 
+    confusion  = confusion_matrix(result, pred)
+    print(confusion) 
     print('')  
-    return scoref1, modelError, confusion_matrix
+    return scoref1, modelError, confusion
 
     
 def SVM(x_train,y_train,x_test,y_test) :
@@ -185,8 +185,8 @@ def SVM(x_train,y_train,x_test,y_test) :
 
 def forest(x_train,y_train,x_test,y_test):
   
-  x_train = np.abs(np.fft.fft(x_train))[0:,0:1000]
-  x_test = np.abs(np.fft.fft(x_test))[0:,0:1000]
+  x_train = np.abs(np.fft.fft(x_train))[0:,0:10]
+  x_test = np.abs(np.fft.fft(x_test))[0:,0:10]
   
   x_train_boot,y_train_boot = bootstrap(x_train,y_train)
   x_train_sc, x_test_sc = scale_datasets(x_train, x_test, param='transpose',reshape=False)
@@ -205,8 +205,8 @@ def maxiforest(x_train,y_train,x_test,y_test):
   x_test = np.abs(np.fft.fft(x_test))[0:,0:1000]
   
   x_train_boot,y_train_boot = bootstrap(x_train,y_train)
-  x_train_sc, x_test_sc = scale_datasets(x_train, x_test, param='transpose',reshape=False)
-  x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_test_boot, param='transpose',reshape=False)
+  x_train_sc, x_test_sc = scale_datasets(x_train, x_test, param='flatten',reshape=False)
+  x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_test_boot, param='flatten',reshape=False)
 
   
   clf = ExtraTreesClassifier(n_estimators=100, max_depth=2,random_state=0)
@@ -322,20 +322,35 @@ def net(X, y, X_tst, y_tst):
 
 
 def scale_datasets(X_train, X_test, param='standardScaling', reshape=True):
-    if param == 'standardScaling':
-        if reshape:
-            
-            return StandardScaler().fit_transform(X_train).reshape(-1,3197,1), StandardScaler().fit_transform(X_test).reshape(-1,3197,1)
-        else :
-            return StandardScaler().fit_transform(X_train), StandardScaler().fit_transform(X_test)
-    elif param == 'transpose':
-        X_train = np.transpose(X_train)
-        X_test = np.transpose(X_test)
-        
-        if reshape:
-            return np.transpose(StandardScaler().fit_transform(X_train)).reshape(-1,3197,1), np.transpose(StandardScaler().fit_transform(X_test)).reshape(-1,3197,1)
-        else :
-            return np.transpose(StandardScaler().fit_transform(X_train)), np.transpose(StandardScaler().fit_transform(X_test))
+  SC = StandardScaler()
+  train_shape = X_train.shape
+  test_shape = X_test.shape
+    
+  if param == 'standardScaling':
+    SC.fit(X_train)
+    if reshape:
+      return SC.transform(X_train).reshape(train_shape[0],train_shape[1],1), SC.transform(X_test).reshape(test_shape[0],test_shape[1],1)
+    else :
+      return SC.transform(X_train), SC.transform(X_test)
+    '''
+  elif param == 'transpose':
+    X_train = np.transpose(X_train)
+    X_test = np.transpose(X_test)
+    SC.fit(X_train)
+    if reshape:
+      return np.transpose(SC.transform(X_train)).reshape(train_shape[0],train_shape[1],1), np.transpose(SC.transform(X_test)).reshape(test_shape[0],test_shape[1],1)
+    else :
+      return np.transpose(SC.transform(X_train)), np.transpose(SC.transform(X_test))
+    '''
+  elif param == 'flatten':
+    X_train = X_train.flatten().reshape((-1,1))
+    print(X_train.shape)
+    X_test = X_test.flatten().reshape((-1,1))
+    SC.fit(X_train)
+    if reshape:
+      return SC.transform(X_train).reshape(train_shape[0],train_shape[1],1), SC.transform(X_test).reshape(test_shape[0],test_shape[1],1)
+    else :
+      return SC.transform(X_train).reshape(train_shape[0],train_shape[1]), SC.transform(X_test).reshape(test_shape[0],test_shape[1])
 
 ######################################################################################
   
@@ -351,6 +366,7 @@ t = np.arange(len(x_train[0])) * (36.0/60.0)
 dt = 36* 60 # sampling rate (s) les données sont prises avec 36min d'écart
 f = np.fft.fftfreq(x_train.shape[1],dt) # vecteur fréquence en (Hz)
 
+
 #savgol filter
 #x_train = savgol_filter(x_train,309,3) # cf script bruit.py pour parametres optimaux
 #x_test = savgol_filter(x_test,309,3)
@@ -364,19 +380,13 @@ x_test_SMOTE, y_test_SMOTE = SMOTE(random_state=0,k_neighbors=4).fit_resample(x_
 
 
 # Scaling
-x_train_sc, x_test_sc = scale_datasets(x_train, x_test, param='transpose',reshape=False)
-x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_test_boot, param='transpose',reshape=False)
-x_train_Rsc, x_test_Rsc = scale_datasets(x_train, x_test)
-x_train_boot_Rsc, x_test_boot_Rsc = scale_datasets(x_train_boot, x_test_boot)
-x_train_SMOTE_sc, x_test_SMOTE_sc = scale_datasets(x_train_SMOTE, x_test_SMOTE)
-x_train_T_sc, x_test_T_sc = scale_datasets(x_train, x_test, param= 'transpose')
-x_train_boot_T_sc, x_test_boot_T_sc = scale_datasets(x_train_boot, x_test_boot, param= 'transpose')
-x_train_SMOTE_sc, x_test_SMOTE_sc = scale_datasets(x_train_SMOTE, x_test_SMOTE, param= 'transpose')
+x_train_sc, x_test_sc = scale_datasets(x_train, x_test, param='flatten',reshape=False)
+x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_test_boot, param='flatten',reshape=False)
 
 
 
 #------------Classifiers on differently processed datasets-------------
-prediction = maxiforest(x_train,y_train,x_test,y_test)
+prediction = forest(x_train,y_train,x_test,y_test)
 getScores(y_test, prediction)
 
 
