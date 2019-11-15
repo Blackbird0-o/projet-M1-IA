@@ -322,27 +322,6 @@ def net(X, y, X_tst, y_tst):
 
 #-------------Data Processing-------------
 def scale_datasets(X_train, X_test, param='standardScaling', reshape=True):
-<<<<<<< HEAD
-  if param == 'standardScaling':
-    if reshape:
-      return StandardScaler().fit_transform(X_train).reshape(-1,3197,1), StandardScaler().fit_transform(X_test).reshape(-1,3197,1)
-    else :
-      return StandardScaler().fit_transform(X_train), StandardScaler().fit_transform(X_test)
-  elif param == 'transpose':
-    X_train = np.transpose(X_train)
-    X_test = np.transpose(X_test)
-    
-    if reshape:
-      return np.transpose(StandardScaler().fit_transform(X_train)).reshape(-1,3197,1), np.transpose(StandardScaler().fit_transform(X_test)).reshape(-1,3197,1)
-    else :
-      return np.transpose(StandardScaler().fit_transform(X_train)), np.transpose(StandardScaler().fit_transform(X_test))
-
-def inv_data(X, y):
-  X_flipped = np.flip(X[np.where(y == 1)[0]], 1)
-  y_flipped = np.ones((X_flipped.shape[0]))
-  return np.concatenate((X, X_flipped)), np.concatenate((y, y_flipped))
-  
-=======
   SC = StandardScaler()
   train_shape = X_train.shape
   test_shape = X_test.shape
