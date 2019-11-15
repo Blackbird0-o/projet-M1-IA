@@ -372,7 +372,11 @@ def inv_data(X, y):
       return SC.transform(X_train).reshape(train_shape[0],train_shape[1],1), SC.transform(X_test).reshape(test_shape[0],test_shape[1],1)
     else :
       return SC.transform(X_train).reshape(train_shape[0],train_shape[1]), SC.transform(X_test).reshape(test_shape[0],test_shape[1])
->>>>>>> cbed85bc9a0407b7eff666468dbbd073d20e7860
+
+def inv_data(X, y):
+  X_flipped = np.flip(X[np.where(y == 1)[0]], 1)
+  y_flipped = np.ones((X_flipped.shape[0]))
+  return np.concatenate((X, X_flipped)), np.concatenate((y, y_flipped))
 
 ######################################################################################
   
