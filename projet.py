@@ -28,6 +28,7 @@ from imblearn.base import BaseSampler
 
 from collections import Counter # counts the number of elements per class ({0: 5050, 1: 37})
 
+from keras import backend as K
 from keras.models import Sequential
 from keras.layers import Activation, Dense, Dropout, Flatten, BatchNormalization,CuDNNLSTM, LSTM,Conv1D,MaxPool1D,Permute,Reshape
 from keras.optimizers import RMSprop, adam
@@ -259,6 +260,36 @@ def Ada(x_train,y_train,x_test,y_test):
   return model.predict(x_test_sc)
 
 #-------------Neural Nets-------------
+def recall(y_true, y_pred):
+    """Recall metric.
+
+    Only computes a batch-wise average of recall.
+
+    Computes the recall, a metric for multi-label classification of
+    how many relevant items are selected.
+    """
+    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+    possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
+    return true_positives / (possible_positives + K.epsilon())
+    
+
+def precision(y_true, y_pred):
+    """Precision metric.
+
+    Only computes a batch-wise average of precision.
+
+    Computes the precision, a metric for multi-label classification of
+    how many selected items are relevant.
+    """
+    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+    predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
+    return true_positives / (predicted_positives + K.epsilon())
+    
+def f1(y_true, y_pred):
+    preci = precision(y_true, y_pred)
+    rec = recall(y_true, y_pred)
+    return 2*((preci*rec)/(preci+rec+K.epsilon()))
+
 def net(X, y, X_tst, y_tst):
   '''
   Defines and fits a NN sequential model on X and y. It then tests the model with X_tst and y_tst
@@ -347,6 +378,106 @@ def net(X, y, X_tst, y_tst):
 
   return model, model.predict(x=X_tst)
 
+def N_net(X, y, X_tst, y_tst):
+  '''
+  Defines and fits a NN sequential model on X and y. It then tests the model with X_tst and y_tst
+  '''
+
+  # Specify model
+  model = Sequential()
+
+  model.add(Conv1D(filters=16, kernel_size=11, activation='softsign', input_shape=X.shape[1:]))
+  model.add(MaxPool1D(strides=4))
+  model.add(BatchNormalization())
+  
+
+  model.add(Flatten())
+  model.add(Dropout(0.45))
+  
+  model.add(Dense(300,activation="relu"))
+  
+  #model.add(Permute((2,1)))
+  
+  model.add(Reshape((-1,1)))
+  '''
+  model.add(Reshape((-1,1,1,1)))
+  
+  model.add(ConvLSTM2D(16, 1, return_sequences=True))
+  model.add(ConvLSTM2D(32, 1, return_sequences=True))
+  model.add(ConvLSTM2D(64, 1, return_sequences=True))
+  model.add(ConvLSTM2D(128, 1))
+
+  model.add(Reshape((-1,)))
+  '''
+  model.add(CuDNNLSTM(16, return_sequences=True))
+  model.add(CuDNNLSTM(32, return_sequences=True))
+  model.add(CuDNNLSTM(64, return_sequences=True))
+  model.add(CuDNNLSTM(128))
+  model.add(Dropout(0.45))
+  
+  
+  model.add(Dense(32,activation="relu"))
+  
+  
+  model.add(Dense(1, activation="sigmoid"))
+  
+
+  model.summary()
+  model.compile(loss="binary_crossentropy",
+                optimizer=adam(),
+                metrics=[f1,precision, "accuracy"])
+
+  # Parameters
+  batch_size = 250
+  epochs = 20
+  '''
+  ##with x_val
+  x_train, x_val, y_train, y_val = train_test_split(X, y, stratify=y,
+                                                  test_size=0.3, random_state=123)
+
+  # Perform fit
+  history = model.fit(x_train, y_train,
+                      batch_size=batch_size,
+                      epochs=epochs,
+                      verbose=1,
+                      shuffle=False,
+                      validation_data=(x_val, y_val))
+  '''
+  ##without x_val
+  # Perform fit
+  history = model.fit(X, y,
+                      batch_size=batch_size,
+                      epochs=epochs,
+                      verbose=1,
+                      shuffle=True,
+                      validation_data=(X_tst, y_tst))
+
+
+  # Print results
+  score = model.evaluate(X_tst, y_tst, verbose=0)
+  print('Test loss/accuracy: %g, %g' % (score[0], score[1]))
+  
+  plt.figure(figsize=(15, 5)) 
+  # Plot history for accuracy
+  plt.subplot(121)
+  plt.plot(history.history['acc'])
+  plt.plot(history.history['val_acc'])
+  plt.title('model accuracy -- MLP')
+  plt.ylabel('accuracy')
+  plt.xlabel('epoch')
+  plt.legend(['train', 'test'], loc='upper left')
+  # summarize history for loss
+  plt.subplot(122)
+  plt.plot(history.history['loss'])
+  plt.plot(history.history['val_loss'])
+  plt.title('model loss -- MLP')
+  plt.ylabel('loss')
+  plt.xlabel('epoch')
+  plt.legend(['train', 'test'], loc='upper left')
+  plt.tight_layout()
+
+  return model, model.predict(x=X_tst)
+
 #-------------Data Processing-------------
 def scale_datasets(X_train, X_test, param='standardScaling', reshape=True):
   SC = StandardScaler()
@@ -362,11 +493,12 @@ def scale_datasets(X_train, X_test, param='standardScaling', reshape=True):
     
   elif param == 'transpose':
     X_train = np.transpose(X_train)
-    X_test = np.tile(X_test,(10,1))[0:train_shape[0]]
+    if train_shape != test_shape :
+      X_test = np.tile(X_test,(10,1))[0:train_shape[0]]
     X_test = np.transpose(X_test)
     SC.fit(X_train)
     if reshape:
-      return np.transpose(SC.transform(X_train)).reshape(train_shape[0],train_shape[1],1), np.transpose(SC.transform(X_test)).reshape(test_shape[0],test_shape[1],1)[0:test_shape[0]]
+      return np.transpose(SC.transform(X_train)).reshape(train_shape[0],train_shape[1],1), np.transpose(SC.transform(X_test))[0:test_shape[0]].reshape(test_shape[0],test_shape[1],1)
     else :
       return np.transpose(SC.transform(X_train)), np.transpose(SC.transform(X_test))[0:test_shape[0]]
     
@@ -400,6 +532,8 @@ def inv_data(X, y):
   y_flipped = np.ones((X_flipped.shape[0]))
   return np.concatenate((X, X_flipped)), np.concatenate((y, y_flipped))
 
+
+
 ######################################################################################
   
 #-------------Cleaning up-------------
@@ -414,10 +548,13 @@ t = np.arange(len(x_train[0])) * (36.0/60.0)
 dt = 36* 60 # sampling rate (s) les données sont prises avec 36min d'écart
 f = np.fft.fftfreq(x_train.shape[1],dt) # vecteur fréquence en (Hz)
 
+#savgol filter###
+x_train = savgol_filter(x_train,309,3) # cf script bruit.py pour parametres optimaux
+x_test = savgol_filter(x_test,309,3)
 
-#savgol filter
-#x_train = savgol_filter(x_train,309,3) # cf script bruit.py pour parametres optimaux
-#x_test = savgol_filter(x_test,309,3)
+###fft
+x_train = np.abs(np.fft.fft(x_train))[0:,0:1000]
+x_test = np.abs(np.fft.fft(x_test))[0:,0:1000]
 
 x_train_boot,y_train_boot = bootstrap(x_train,y_train)
 x_test_boot,y_test_boot = bootstrap(x_test,y_test)
@@ -456,6 +593,5 @@ print('adaboost')
 model, y_pred = net(x_train_T_Rsc, y_train, x_test_T_Rsc, y_test)
 
 predthr = np.where(y_pred > 0.5, 1, 0)
-getScores(y_test, y_pred)
-'''
+getScores(y_test_boot, predthr)'''
 
