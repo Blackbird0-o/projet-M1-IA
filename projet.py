@@ -20,6 +20,7 @@ from sklearn.metrics import precision_score
 from sklearn.metrics import recall_score
 from sklearn.metrics import mean_squared_error
 from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier,AdaBoostClassifier
+from sklearn.neighbors import KNeighborsClassifier
 
 from mpl_toolkits.mplot3d import Axes3D 
 
@@ -198,9 +199,17 @@ def getScores(pred, result):
 #-------------Classifiers-------------
 def SVM(x_train,y_train,x_test,y_test) :
   
-  clf_svc = SVC(gamma='auto', kernel='poly')
+  clf_svc = SVC(gamma='auto', kernel='linear')
   
   model = clf_svc.fit(x_train, y_train)
+  
+  return model.predict(x_test)
+
+def knn(x_train,y_train,x_test,y_test) :
+  
+  clf = KNeighborsClassifier(n_neighbors=5)
+  
+  model = clf.fit(x_train, y_train)
   
   return model.predict(x_test)
 
@@ -541,8 +550,8 @@ dt = 36* 60 # sampling rate (s) les données sont prises avec 36min d'écart
 f = np.fft.fftfreq(x_train.shape[1],dt) # vecteur fréquence en (Hz)
 
 
-x_train_sc, x_test_sc = scale_datasets(x_train, x_test, param='transpose',reshape=False) #for neural net reshape = True
-x_train_boot,y_train_boot = bootstrap(x_train,y_train)
+x_train, x_test = scale_datasets(x_train, x_test, param='transpose',reshape=False) #for neural net reshape = True
+x_train,y_train = bootstrap(x_train,y_train)
 
 #savgol filter
 x_train = savgol_filter(x_train,309,3) # cf script bruit.py pour parametres optimaux
@@ -552,11 +561,16 @@ x_test = savgol_filter(x_test,309,3)
 x_train = np.abs(np.fft.fft(x_train))[0:,0:1000]
 x_test = np.abs(np.fft.fft(x_test))[0:,0:1000]
 
-x_train = transform_dataset(x_train, mode='all_in',nsamples=200)
-x_test = transform_dataset(x_test, mode='all_in',nsamples=200)
+x_train = transform_dataset(x_train,nsamples=20)
+x_test = transform_dataset(x_test,nsamples=20)
 
-pca = PCA(n_components=x_train.shape[1])
+x_train, x_test = scale_datasets(x_train, x_test,reshape=False)
+pcaPlot(x_train,y_train)
+
+#x_train, x_test = scale_datasets(x_train, x_test,reshape=False)
+pca = PCA(n_components=3)#x_train.shape[1])
 pca.fit(x_train)
+
 
 x_train = pca.transform(x_train)
 x_test = pca.transform(x_test)
@@ -577,21 +591,21 @@ x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_test_boot, para
 
 
 #------------Classifiers on differently processed datasets-------------
-
-print("SVM")
-#prediction = SVM(x_train,y_train,x_test,y_test)
-#getScores(y_test, prediction)
+'''
+print("knn")
+prediction = knn(x_train,y_train,x_test,y_test)
+getScores(y_test, prediction)
 
 print('maxi trees')
 prediction = maxiforest(x_train,y_train,x_test,y_test)
 getScores(y_test, prediction)
 
-print('adaboost')
+#print('adaboost')
 #prediction = Ada(x_train,y_train,x_test,y_test)
 #getScores(y_test, prediction)
-
+'''
 print('random forest')
-prediction = forest(x_train,y_train,x_test,y_test)
+prediction = SVM(x_train,y_train,x_test,y_test)
 getScores(y_test, prediction)
 
 #------------NN on different processed datasets-------------
