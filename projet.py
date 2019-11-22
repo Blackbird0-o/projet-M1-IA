@@ -571,6 +571,7 @@ x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_test_boot, para
 
 
 #------------Classifiers on differently processed datasets-------------
+'''
 print("SVM")
 #prediction = SVM(x_train,y_train,x_test,y_test)
 #getScores(y_test, prediction)
@@ -583,15 +584,16 @@ getScores(y_test, prediction)
 print('adaboost')
 #prediction = Ada(x_train,y_train,x_test,y_test)
 #getScores(y_test, prediction)
+'''
 
 #------------NN on different processed datasets-------------
 #model, y_pred = net(x_train_boot_Rsc, y_train_boot, x_test_boot_Rsc, y_test_boot)
 #model, y_pred = net(x_train_SMOTE_sc, y_train_SMOTE, x_test_SMOTE_sc, y_test_SMOTE)
 #model, y_pred = net(x_train_Rsc, y_train, x_test_Rsc, y_test)
 
-'''
-model, y_pred = net(x_train_T_Rsc, y_train, x_test_T_Rsc, y_test)
 
-predthr = np.where(y_pred > 0.5, 1, 0)
-getScores(y_test_boot, predthr)'''
+N_model, N_y_pred = N_net(x_train_boot_sc, y_train_boot, x_test_boot_sc, y_test_boot)
+predthr = np.where(N_y_pred > 0.5, 1, 0)
+getScores(y_test_boot, predthr)
+
 
