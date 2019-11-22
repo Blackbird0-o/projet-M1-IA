@@ -198,52 +198,27 @@ def getScores(pred, result):
 #-------------Classifiers-------------
 def SVM(x_train,y_train,x_test,y_test) :
   
-  x_train = transform_dataset(x_train, mode='all_in')
-  x_test = transform_dataset(x_test, mode='all_in')
+  clf_svc = SVC(gamma='auto', kernel='poly')
   
-  x_train_boot,y_train_boot = bootstrap(x_train,y_train)
-  x_train_sc, x_test_sc = scale_datasets(x_train, x_test, param='flatten',reshape=False)
-  x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_train_boot, param='flatten',reshape=False)
-
+  model = clf_svc.fit(x_train, y_train)
   
-  
-  clf_svc = SVC(gamma='auto', kernel='linear')
-  
-  model = clf_svc.fit(x_train_boot_sc, y_train_boot)
-  
-  return model.predict(x_test_sc)
+  return model.predict(x_test)
 
 def forest(x_train,y_train,x_test,y_test):
-  
-  x_train = transform_dataset(x_train,mode='all_in',nsamples=30)
-  x_test = transform_dataset(x_test,mode='all_in',nsamples=30)
-  
-  x_train_boot,y_train_boot = bootstrap(x_train,y_train)
-  x_train_sc, x_test_sc = scale_datasets(x_train, x_test, param='flatten',reshape=False)
-  x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_train_boot, param='flatten',reshape=False)
 
+  clf = RandomForestClassifier(n_estimators=1000, max_depth=4,random_state=0)
   
-  clf = RandomForestClassifier(n_estimators=1000, max_depth=3,random_state=0)
+  model = clf.fit(x_train, y_train)
   
-  model = clf.fit(x_train_boot_sc, y_train_boot)
-  
-  return model.predict(x_test_sc)
+  return model.predict(x_test)
 
 def maxiforest(x_train,y_train,x_test,y_test):
-  
-  x_train = transform_dataset(x_train, mode='all_in')
-  x_test = transform_dataset(x_test, mode='all_in')
-  
-  x_train_boot,y_train_boot = bootstrap(x_train,y_train)
-  x_train_sc, x_test_sc = scale_datasets(x_train, x_test, param='flatten',reshape=False)
-  x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_train_boot, param='flatten',reshape=False)
 
+  clf = ExtraTreesClassifier(n_estimators=1000, max_depth=3,random_state=0)
   
-  clf = ExtraTreesClassifier(n_estimators=500, max_depth=3,random_state=0)
+  model = clf.fit(x_train, y_train)
   
-  model = clf.fit(x_train_boot_sc, y_train_boot)
-  
-  return model.predict(x_test_sc)
+  return model.predict(x_test)
 
 def Ada(x_train,y_train,x_test,y_test):
   
@@ -251,8 +226,8 @@ def Ada(x_train,y_train,x_test,y_test):
   x_test = np.abs(np.fft.fft(x_test))[0:,0:1000]
   
   x_train_boot,y_train_boot = bootstrap(x_train,y_train)
-  x_train_sc, x_test_sc = scale_datasets(x_train, x_test, param='flatten',reshape=False)
-  x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_train_boot, param='flatten',reshape=False)
+  x_train_sc, x_test_sc = scale_datasets(x_train, x_test, param='standardScaling',reshape=False)
+  x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_train_boot, param='standardScaling',reshape=False)
 
   
   clf = AdaBoostClassifier(n_estimators=100, random_state=0)
@@ -483,10 +458,10 @@ def N_net(X, y, X_tst, y_tst):
 #-------------Data Processing-------------
 def transform_dataset(X, mode='wavelet', wname='db5',nsamples=10):
   if mode == 'wavelet':
-    return pywt.dwt(X, wname)[0]
+    return pywt.dwt(X, wname)[0][:,0:nsamples]
 
   elif mode == 'fft':
-    return np.abs(np.fft.fft(X))
+    return np.abs(np.fft.fft(X))[:,0:nsamples]
 
   elif mode == 'all_in':
     allz = np.abs(np.fft.fft(X))[:,0:nsamples]
@@ -564,7 +539,11 @@ x_train,y_train,x_test,y_test = dataload(merge=True)
 t = np.arange(len(x_train[0])) * (36.0/60.0)
 dt = 36* 60 # sampling rate (s) les données sont prises avec 36min d'écart
 f = np.fft.fftfreq(x_train.shape[1],dt) # vecteur fréquence en (Hz)
-'''
+
+
+x_train_sc, x_test_sc = scale_datasets(x_train, x_test, param='transpose',reshape=False) #for neural net reshape = True
+x_train_boot,y_train_boot = bootstrap(x_train,y_train)
+
 #savgol filter
 x_train = savgol_filter(x_train,309,3) # cf script bruit.py pour parametres optimaux
 x_test = savgol_filter(x_test,309,3)
@@ -573,6 +552,16 @@ x_test = savgol_filter(x_test,309,3)
 x_train = np.abs(np.fft.fft(x_train))[0:,0:1000]
 x_test = np.abs(np.fft.fft(x_test))[0:,0:1000]
 
+x_train = transform_dataset(x_train, mode='all_in',nsamples=200)
+x_test = transform_dataset(x_test, mode='all_in',nsamples=200)
+
+pca = PCA(n_components=x_train.shape[1])
+pca.fit(x_train)
+
+x_train = pca.transform(x_train)
+x_test = pca.transform(x_test)
+
+'''
 x_train_boot,y_train_boot = bootstrap(x_train,y_train)
 x_test_boot,y_test_boot = bootstrap(x_test,y_test)
 
@@ -590,8 +579,8 @@ x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_test_boot, para
 #------------Classifiers on differently processed datasets-------------
 
 print("SVM")
-prediction = SVM(x_train,y_train,x_test,y_test)
-getScores(y_test, prediction)
+#prediction = SVM(x_train,y_train,x_test,y_test)
+#getScores(y_test, prediction)
 
 print('maxi trees')
 prediction = maxiforest(x_train,y_train,x_test,y_test)
