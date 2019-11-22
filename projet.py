@@ -6,6 +6,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
 
+import pywt
+
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.decomposition import PCA
@@ -479,6 +481,21 @@ def N_net(X, y, X_tst, y_tst):
   return model, model.predict(x=X_tst)
 
 #-------------Data Processing-------------
+def transform_dataset(X, type='wavelet', wname='db5',nsamples='10'):
+  if type == 'wavelet':
+    return pywt.dwt(X, wname)[0]
+
+  elif type == 'fft':
+    return np.abs(np.fft(X))
+
+  elif type == 'all_in':
+    allz = np.array([])
+    wnames = ['db5','sym5','coif5','bior2.4']
+    for wn in wnames:
+      np.append(allz, pywt.dwt(X, wn)[:,0:nsamples], axis=1)
+    return allz
+
+
 def scale_datasets(X_train, X_test, param='standardScaling', reshape=True):
   SC = StandardScaler()
   train_shape = X_train.shape
@@ -591,9 +608,9 @@ print('adaboost')
 #model, y_pred = net(x_train_SMOTE_sc, y_train_SMOTE, x_test_SMOTE_sc, y_test_SMOTE)
 #model, y_pred = net(x_train_Rsc, y_train, x_test_Rsc, y_test)
 
-
+'''
 N_model, N_y_pred = N_net(x_train_boot_sc, y_train_boot, x_test_boot_sc, y_test_boot)
 predthr = np.where(N_y_pred > 0.5, 1, 0)
 getScores(y_test_boot, predthr)
-
+'''
 
