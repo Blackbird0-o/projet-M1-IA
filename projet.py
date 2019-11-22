@@ -565,8 +565,8 @@ x_test_SMOTE, y_test_SMOTE = SMOTE(random_state=0,k_neighbors=4).fit_resample(x_
 
 
 # Scaling
-x_train_sc, x_test_sc = scale_datasets(x_train, x_test, param='flatten',reshape=False)
-x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_test_boot, param='flatten',reshape=False)
+x_train_sc, x_test_sc = scale_datasets(x_train, x_test, param='transpose',reshape=True)
+x_train_boot_sc, x_test_boot_sc = scale_datasets(x_train_boot, x_test_boot, param='transpose',reshape=True)
 
 
 
