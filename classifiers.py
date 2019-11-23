@@ -4,14 +4,24 @@ import numpy as np
 from sklearn.svm import LinearSVC
 from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier, AdaBoostClassifier
+from sklearn.neighbors import KNeighborsClassifier
 
 
 # -------------Classifiers-------------
 def SVM(x_train, y_train, x_test, y_test):
 
-    clf_svc = SVC(gamma='auto', kernel='poly')
+    clf_svc = SVC(gamma='auto', kernel='linear')
 
     model = clf_svc.fit(x_train, y_train)
+
+    return model.predict(x_test)
+
+
+def knn(x_train, y_train, x_test, y_test):
+
+    clf = KNeighborsClassifier(n_neighbors=5)
+
+    model = clf.fit(x_train, y_train)
 
     return model.predict(x_test)
 

@@ -162,7 +162,6 @@ def transform_dataset(X, mode='wavelet', wname='db5',nsamples=10):
       np.append(allz, pywt.dwt(X, wn)[0][:,0:nsamples], axis=1)
     return allz
 
-
 def scale_datasets(X_train, X_test, param='standardScaling', reshape=True):
   SC = StandardScaler()
   train_shape = X_train.shape
