@@ -11,66 +11,6 @@ from NNets import *
 from dataProcessing import *
 from classifiers import *
 
-##########################################################################################################################
-
-# -------------Classifiers-------------
-
-
-def SVM(x_train, y_train, x_test, y_test):
-
-    clf_svc = SVC(gamma='auto', kernel='linear')
-
-    model = clf_svc.fit(x_train, y_train)
-
-    return model.predict(x_test)
-
-
-def knn(x_train, y_train, x_test, y_test):
-
-    clf = KNeighborsClassifier(n_neighbors=5)
-
-    model = clf.fit(x_train, y_train)
-
-    return model.predict(x_test)
-
-
-def forest(x_train, y_train, x_test, y_test):
-
-    clf = RandomForestClassifier(
-        n_estimators=1000, max_depth=4, random_state=0)
-
-    model = clf.fit(x_train, y_train)
-
-    return model.predict(x_test)
-
-
-def maxiforest(x_train, y_train, x_test, y_test):
-
-    clf = ExtraTreesClassifier(n_estimators=1000, max_depth=3, random_state=0)
-
-    model = clf.fit(x_train, y_train)
-
-    return model.predict(x_test)
-
-
-def Ada(x_train, y_train, x_test, y_test):
-
-    x_train = np.abs(np.fft.fft(x_train))[0:, 0:1000]
-    x_test = np.abs(np.fft.fft(x_test))[0:, 0:1000]
-
-    x_train_boot, y_train_boot = bootstrap(x_train, y_train)
-    x_train_sc, x_test_sc = scale_datasets(
-        x_train, x_test, param='standardScaling', reshape=False)
-    x_train_boot_sc, x_test_boot_sc = scale_datasets(
-        x_train_boot, x_train_boot, param='standardScaling', reshape=False)
-
-    clf = AdaBoostClassifier(n_estimators=100, random_state=0)
-
-    model = clf.fit(x_train_boot_sc, y_train_boot)
-
-    return model.predict(x_test_sc)
-
-
 ######################################################################################
 # -------------Cleaning up-------------
 warnings.filterwarnings("ignore", category=FutureWarning)
