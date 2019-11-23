@@ -2,3 +2,5 @@ data
 exoTrain.csv
 exoTest.csv
 .vscode
+__pycache__
+PCA.py

@@ -5,6 +5,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib import cm
 
+from mpl_toolkits.mplot3d import Axes3D
+
 from imblearn.over_sampling import SMOTE
 from imblearn.base import BaseSampler
 from collections import Counter # counts the number of elements per class ({0: 5050, 1: 37})
