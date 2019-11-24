@@ -24,10 +24,19 @@ t = np.arange(len(x_train[0])) * (36.0/60.0)
 dt = 36 * 60  # sampling rate (s) les données sont prises avec 36min d'écart
 f = np.fft.fftfreq(x_train.shape[1], dt)  # vecteur fréquence en (Hz)
 
+x_train, y_train = bootstrap(x_train, y_train)
+x_train = RPN(x_train)
+x_test = RPN(x_test)
 
+x_train = x_train.reshape(x_train.shape[0],x_train.shape[1],1)
+x_test = x_test.reshape(x_test.shape[0],x_test.shape[1],1)
+
+X_encoded, X_tst_encoded = auto_encoder(x_train, x_test)
+
+'''
 # for neural net reshape = True
 x_train, x_test = scale_datasets(
-    x_train, x_test, param='transpose', reshape=False)
+    x_train, x_test, param='transpose', reshape=True)
 x_train, y_train = bootstrap(x_train, y_train)
 
 # savgol filter
@@ -42,7 +51,7 @@ x_test = np.abs(np.fft.fft(x_test))[0:, 0:1000]
 x_train = transform_dataset(x_train, nsamples=20)
 x_test = transform_dataset(x_test, nsamples=20)
 
-x_train, x_test = scale_datasets(x_train, x_test, reshape=False)
+x_train, x_test = scale_datasets(x_train, x_test, reshape=True)
 pcaPlot(x_train, y_train)
 
 #x_train, x_test = scale_datasets(x_train, x_test,reshape=False)
@@ -52,7 +61,7 @@ pca.fit(x_train)
 
 x_train = pca.transform(x_train)
 x_test = pca.transform(x_test)
-
+'''
 '''
 x_train_boot,y_train_boot = bootstrap(x_train,y_train)
 x_test_boot,y_test_boot = bootstrap(x_test,y_test)
@@ -82,6 +91,7 @@ getScores(y_test, prediction)
 #prediction = Ada(x_train,y_train,x_test,y_test)
 #getScores(y_test, prediction)
 '''
+'''
 print('random forest')
 prediction = SVM(x_train, y_train, x_test, y_test)
 getScores(y_test, prediction)
@@ -90,7 +100,7 @@ getScores(y_test, prediction)
 #model, y_pred = net(x_train_boot_Rsc, y_train_boot, x_test_boot_Rsc, y_test_boot)
 #model, y_pred = net(x_train_SMOTE_sc, y_train_SMOTE, x_test_SMOTE_sc, y_test_SMOTE)
 #model, y_pred = net(x_train_Rsc, y_train, x_test_Rsc, y_test)
-
+'''
 '''
 N_model, N_y_pred = N_net(x_train_boot_sc, y_train_boot, x_test_boot_sc, y_test_boot)
 predthr = np.where(N_y_pred > 0.5, 1, 0)

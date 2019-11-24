@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 from keras import backend as K
 
 from keras.models import Sequential
-from keras.layers import Activation, Dense, Dropout, Flatten, BatchNormalization, CuDNNLSTM, LSTM, Conv1D, MaxPool1D, Permute, Reshape
+from keras.layers import Activation, Dense, Dropout, Flatten, BatchNormalization, CuDNNLSTM, LSTM, Conv1D,UpSampling1D, MaxPool1D,MaxPooling1D, Permute, Reshape
 from keras.optimizers import RMSprop, adam
 from keras.utils import to_categorical
 
@@ -243,8 +243,8 @@ def N_net(X, y, X_tst, y_tst):
   return model, model.predict(x=X_tst)
 
 def auto_encoder(X, X_tst):
-  X = X.reshape(-1,1)
-  x_tst = X_tst.reshape(-1,1)
+  #X = X.reshape(-1,1)
+  #X_tst = X_tst.reshape(-1,1)
   autoencoder = Sequential()
 
   # Encoder
@@ -252,17 +252,19 @@ def auto_encoder(X, X_tst):
   autoencoder.add(MaxPooling1D(4, padding='same'))
   autoencoder.add(Conv1D(8, 4, activation='relu', padding='same'))
   autoencoder.add(MaxPooling1D(4, padding='same'))
-  autoencoder.add(Conv1D(8, 4, strides=(2,2), activation='relu', padding='same'))
+  autoencoder.add(Conv1D(8, 4, activation='relu', padding='same'))
 
   # Decoder
   autoencoder.add(Conv1D(8, 4, activation='relu', padding='same'))
   autoencoder.add(UpSampling1D(4))
   autoencoder.add(Conv1D(8, 4, activation='relu', padding='same'))
   autoencoder.add(UpSampling1D(4))
-  autoencoder.add(Conv1D(16, 4, activation='relu'))
+  autoencoder.add(Conv1D(1, 4, activation='relu'))
+  
+  '''
   autoencoder.add(UpSampling1D(4))
   autoencoder.add(Conv1D(1, 4, activation='sigmoid', padding='same'))
-
+  '''
   autoencoder.summary()
 
 
