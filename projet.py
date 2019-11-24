@@ -31,7 +31,7 @@ x_test = RPN(x_test)
 x_train = x_train.reshape(x_train.shape[0],x_train.shape[1],1)
 x_test = x_test.reshape(x_test.shape[0],x_test.shape[1],1)
 
-X_encoded, X_tst_encoded = auto_encoder(x_train, x_test)
+X_encoded, X_tst_encoded, autoencoder = auto_encoder(x_train, x_test)
 
 '''
 # for neural net reshape = True

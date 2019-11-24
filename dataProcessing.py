@@ -27,7 +27,7 @@ def RPN(x):
         x_RPN = array numpy, la RPN du signal
         '''
     mean = np.mean(x,axis=1).reshape(x.shape[0],1)
-    return (x-mean)/mean
+    return (x-mean)/np.max(x,axis = 1).reshape(x.shape[0],1)
   
 def shuffle(x,y):
     # shuffle

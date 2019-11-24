@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 
 from keras import backend as K
 
-from keras.models import Sequential
+from keras.models import Sequential ,Model
 from keras.layers import Activation, Dense, Dropout, Flatten, BatchNormalization, CuDNNLSTM, LSTM, Conv1D,UpSampling1D, MaxPool1D,MaxPooling1D, Permute, Reshape
 from keras.optimizers import RMSprop, adam
 from keras.utils import to_categorical
@@ -255,11 +255,11 @@ def auto_encoder(X, X_tst):
   autoencoder.add(Conv1D(8, 4, activation='relu', padding='same'))
 
   # Decoder
-  autoencoder.add(Conv1D(8, 4, activation='relu', padding='same'))
+  autoencoder.add(Conv1D(8, 4, activation='tanh', padding='same'))
   autoencoder.add(UpSampling1D(4))
-  autoencoder.add(Conv1D(8, 4, activation='relu', padding='same'))
+  autoencoder.add(Conv1D(8, 4, activation='tanh', padding='same'))
   autoencoder.add(UpSampling1D(4))
-  autoencoder.add(Conv1D(1, 4, activation='relu'))
+  autoencoder.add(Conv1D(1, 4, activation='tanh'))
   
   '''
   autoencoder.add(UpSampling1D(4))
@@ -281,4 +281,4 @@ def auto_encoder(X, X_tst):
   X_encoded = encoder.predict(X)
   X_tst_encoded = encoder.predict(X_tst)
 
-  return X_encoded, X_tst_encoded
+  return X_encoded, X_tst_encoded, autoencoder
