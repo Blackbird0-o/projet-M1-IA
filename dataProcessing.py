@@ -168,6 +168,7 @@ def scale_datasets(X_train, X_test, param='standardScaling', reshape=True):
   SC = StandardScaler()
   train_shape = X_train.shape
   test_shape = X_test.shape
+  
     
   if param == 'standardScaling':
     SC.fit(X_train)
@@ -186,6 +187,19 @@ def scale_datasets(X_train, X_test, param='standardScaling', reshape=True):
       return np.transpose(SC.transform(X_train)).reshape(train_shape[0],train_shape[1],1), np.transpose(SC.transform(X_test))[0:test_shape[0]].reshape(test_shape[0],test_shape[1],1)
     else :
       return np.transpose(SC.transform(X_train)), np.transpose(SC.transform(X_test))[0:test_shape[0]]
+  
+  elif param == 'RPN':
+    
+    mean_train = np.mean(X_train,axis=1).reshape(X_train.shape[0],1)
+    mean_test = np.mean(X_test,axis=1).reshape(X_test.shape[0],1)
+    
+    norm_train = np.linalg.norm(X_train,axis=1).reshape(-1,1)
+    norm_test = np.linalg.norm(X_test,axis=1).reshape(-1,1)
+    
+    if reshape:
+      return ((X_train-mean_train)/norm_train) .reshape(train_shape[0],train_shape[1],1) , ((X_test-mean_test)/norm_test) .reshape(test_shape[0],test_shape[1],1)
+    else :
+      return ((X_train-mean_train)/norm_train)  , ((X_test-mean_test)/norm_test) 
     
   elif param == 'flatten':
     X_train = X_train.flatten().reshape((-1,1))

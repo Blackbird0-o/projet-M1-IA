@@ -252,12 +252,12 @@ def auto_encoder(X, X_tst):
   autoencoder.add(MaxPooling1D(4, padding='same'))
   autoencoder.add(Conv1D(8, 4, activation='relu', padding='same'))
   autoencoder.add(MaxPooling1D(4, padding='same'))
-  autoencoder.add(Conv1D(8, 4, activation='relu', padding='same'))
+  autoencoder.add(Conv1D(1, 4, activation='sigmoid', padding='same'))
 
   # Decoder
-  autoencoder.add(Conv1D(8, 4, activation='tanh', padding='same'))
+  autoencoder.add(Conv1D(8, 4, activation='relu', padding='same'))
   autoencoder.add(UpSampling1D(4))
-  autoencoder.add(Conv1D(8, 4, activation='tanh', padding='same'))
+  autoencoder.add(Conv1D(8, 4, activation='relu', padding='same'))
   autoencoder.add(UpSampling1D(4))
   autoencoder.add(Conv1D(1, 4, activation='tanh'))
   
@@ -271,7 +271,7 @@ def auto_encoder(X, X_tst):
 
   autoencoder.compile(optimizer='adam', loss='binary_crossentropy')
   autoencoder.fit(X, X,
-                  epochs=50,
+                  epochs=10,
                   batch_size=128,
                   validation_data=(X_tst, X_tst))
 

@@ -25,11 +25,9 @@ dt = 36 * 60  # sampling rate (s) les données sont prises avec 36min d'écart
 f = np.fft.fftfreq(x_train.shape[1], dt)  # vecteur fréquence en (Hz)
 
 x_train, y_train = bootstrap(x_train, y_train)
-x_train = RPN(x_train)
-x_test = RPN(x_test)
+x_train, x_test = scale_datasets(x_train, x_test,param='RPN')
 
-x_train = x_train.reshape(x_train.shape[0],x_train.shape[1],1)
-x_test = x_test.reshape(x_test.shape[0],x_test.shape[1],1)
+
 
 X_encoded, X_tst_encoded, autoencoder = auto_encoder(x_train, x_test)
 
