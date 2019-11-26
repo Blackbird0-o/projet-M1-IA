@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 
 from keras import backend as K
 
-from keras.models import Sequential ,Model
+from keras.models import Sequential, Model
 from keras.layers import Activation, Dense, Dropout, Flatten, BatchNormalization, CuDNNLSTM, LSTM, Conv1D,UpSampling1D, MaxPool1D,MaxPooling1D, Permute, Reshape
 from keras.optimizers import RMSprop, adam
 from keras.utils import to_categorical
@@ -282,3 +282,67 @@ def auto_encoder(X, X_tst):
   X_tst_encoded = encoder.predict(X_tst)
 
   return X_encoded, X_tst_encoded, autoencoder
+
+def simple_net(X,y, X_tst, y_tst):
+  '''
+  Defines and fits a NN sequential model on X and y. It then tests the model with X_tst and y_tst
+  '''
+
+  # Specify model
+  model = Sequential()
+
+  model.add(Conv1D(filters=16, kernel_size=11,
+                    activation='softsign', input_shape=X.shape[1:]))
+  model.add(MaxPool1D(strides=4))
+  model.add(Flatten())
+  model.add(Dropout(0.45))
+
+  model.add(Reshape((-1, 1)))
+  
+  model.add(CuDNNLSTM(32, return_sequences=True))
+  model.add(CuDNNLSTM(64))
+  model.add(Dropout(0.45))
+
+  model.add(Dense(1, activation="sigmoid"))
+
+  model.summary()
+  model.compile(loss="binary_crossentropy",
+                optimizer=adam(),
+                metrics=[f1, precision, "accuracy"])
+
+  # Parameters
+  batch_size = 250
+  epochs = 20
+  
+  # Perform fit
+  history = model.fit(X, y,
+                      batch_size=batch_size,
+                      epochs=epochs,
+                      verbose=1,
+                      shuffle=True,
+                      validation_data=(X_tst, y_tst))
+
+  # Print results
+  score = model.evaluate(X_tst, y_tst, verbose=0)
+  print('Test loss/accuracy: %g, %g' % (score[0], score[1]))
+
+  plt.figure(figsize=(15, 5))
+  # Plot history for accuracy
+  plt.subplot(121)
+  plt.plot(history.history['acc'])
+  plt.plot(history.history['val_acc'])
+  plt.title('model accuracy -- MLP')
+  plt.ylabel('accuracy')
+  plt.xlabel('epoch')
+  plt.legend(['train', 'test'], loc='upper left')
+  # summarize history for loss
+  plt.subplot(122)
+  plt.plot(history.history['loss'])
+  plt.plot(history.history['val_loss'])
+  plt.title('model loss -- MLP')
+  plt.ylabel('loss')
+  plt.xlabel('epoch')
+  plt.legend(['train', 'test'], loc='upper left')
+  plt.tight_layout()
+
+  return model, model.predict(x=X_tst)
