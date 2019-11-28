@@ -190,17 +190,17 @@ def scale_datasets(X_train, X_test, param='standardScaling', reshape=True):
   
   elif param == 'RPN':
     
-    mean_train = np.mean(X_train,axis=1).reshape(X_train.shape[0],1)
-    mean_test = np.mean(X_test,axis=1).reshape(X_test.shape[0],1)
+    mean_train = np.mean(X_train,axis=1).reshape(X_train.shape[0],1) 
+    mean_test = np.mean(X_test,axis=1).reshape(X_test.shape[0],1) # mean on each line which is allowed
     
-    norm_train = np.linalg.norm(X_train,axis=1).reshape(-1,1)
-    norm_test = np.linalg.norm(X_test,axis=1).reshape(-1,1)
+    norm_train = np.max(np.abs(X_train),axis=1).reshape(-1,1)
+    norm_test = np.max(np.abs(X_test),axis=1).reshape(-1,1) # max on each line which is also allowed
     
     if reshape:
       return ((X_train-mean_train)/norm_train) .reshape(train_shape[0],train_shape[1],1) , ((X_test-mean_test)/norm_test) .reshape(test_shape[0],test_shape[1],1)
     else :
       return ((X_train-mean_train)/norm_train)  , ((X_test-mean_test)/norm_test) 
-    
+  
   elif param == 'flatten':
     X_train = X_train.flatten().reshape((-1,1))
     X_test = X_test.flatten().reshape((-1,1))
