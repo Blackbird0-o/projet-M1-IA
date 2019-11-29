@@ -5,14 +5,17 @@ from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_
 from sklearn.model_selection import train_test_split
 
 from keras import backend as K
-
-from keras.models import Sequential, Model
-from keras.layers import Activation, Dense, Dropout, Flatten, BatchNormalization, CuDNNLSTM, LSTM, Conv1D,UpSampling1D, MaxPool1D,MaxPooling1D, Permute, Reshape
+from tensorflow.keras.models import Sequential 
+from keras.models import  Model
+from tensorflow.python.keras.layers import Activation, Dense, Dropout, Flatten, BatchNormalization, CuDNNLSTM, LSTM, Conv1D,UpSampling1D, MaxPool1D,MaxPooling1D, Permute, Reshape
 from keras.optimizers import RMSprop, adam
 from keras.utils import to_categorical
 
 
 # -------------Scores and metrics-------------
+def root_mean_squared_error(y_true, y_pred):
+  return K.sqrt(K.mean(K.square(y_pred - y_true))) 
+      
 def getScores(pred, result):
   print('Precision :')
   print(precision_score(result, pred))
@@ -69,7 +72,44 @@ def auto_encoder(X, X_tst):
   autoencoder.add(MaxPooling1D(4, padding='same'))
   autoencoder.add(Conv1D(8, 4, activation='relu', padding='same'))
   autoencoder.add(MaxPooling1D(4, padding='same'))
+  #autoencoder.add(Conv1D(1, 4, activation='sigmoid', padding='same'))
+  autoencoder.add(Reshape((200*8,)))
+  autoencoder.add(Dense(200,activation = 'sigmoid'))
+
+  # Decoder
+  autoencoder.add(Dense(800,activation = 'relu'))
+  autoencoder.add(Reshape((800,1)))
+  autoencoder.add(Conv1D(8, 4, activation='relu', padding='same'))
+  #autoencoder.add(UpSampling1D(2))
+  autoencoder.add(Conv1D(8, 4, activation='relu', padding='same'))
+  autoencoder.add(UpSampling1D(4))
+  autoencoder.add(Conv1D(1, 4, activation='tanh'))
+
+  autoencoder.summary()
+
+
+
+  autoencoder.compile(optimizer='adam', loss = root_mean_squared_error)
+  autoencoder.fit(X, X,epochs=10,batch_size=128)
+
+  #encoder = Model(inputs=autoencoder.input, outputs=autoencoder.get_layer('conv1d_3').output)
+  #encoder.summary()
+
+  X_encoded = autoencoder.predict(X)
+  X_tst_encoded = autoencoder.predict(X_tst)
+
+  return X_encoded, X_tst_encoded, autoencoder
+
+def auto_encoder_conv(X, X_tst):
+  autoencoder = Sequential()
+
+  # Encoder
+  autoencoder.add(Conv1D(16, 10, activation='relu', padding='same', input_shape=X.shape[1:]))
+  autoencoder.add(MaxPooling1D(4, padding='same'))
+  autoencoder.add(Conv1D(8, 4, activation='relu', padding='same'))
+  autoencoder.add(MaxPooling1D(4, padding='same'))
   autoencoder.add(Conv1D(1, 4, activation='sigmoid', padding='same'))
+
 
   # Decoder
   autoencoder.add(Conv1D(8, 4, activation='relu', padding='same'))
@@ -82,21 +122,19 @@ def auto_encoder(X, X_tst):
 
 
 
-  autoencoder.compile(optimizer='adam', loss='binary_crossentropy')
-  autoencoder.fit(X, X,
-                  epochs=10,
-                  batch_size=128,
-                  validation_data=(X_tst, X_tst))
+  autoencoder.compile(optimizer='adam', loss = root_mean_squared_error)
+  autoencoder.fit(X, X,epochs=10,batch_size=128)
 
-  encoder = Model(inputs=autoencoder.input, outputs=autoencoder.get_layer('conv1d_3').output)
-  encoder.summary()
+  #encoder = Model(inputs=autoencoder.input, outputs=autoencoder.get_layer('conv1d_3').output)
+  #encoder.summary()
 
-  X_encoded = encoder.predict(X)
-  X_tst_encoded = encoder.predict(X_tst)
+  X_encoded = autoencoder.predict(X)
+  X_tst_encoded = autoencoder.predict(X_tst)
 
   return X_encoded, X_tst_encoded, autoencoder
 
-def maxinet(x_train,y_train,x_test,y_test):
+
+def maxinet(x_train,y_train,x_test,y_test,ep = 5, bs = 32):
   model = Sequential()
 
   model.add(Conv1D(16, 200, activation='relu', padding='same', input_shape=x_train.shape[1:]))
@@ -117,7 +155,8 @@ def maxinet(x_train,y_train,x_test,y_test):
 
   model.compile(optimizer='adam', loss='binary_crossentropy',metrics=[precision]) #[f1, precision, "accuracy"]
   model.fit(x_train, y_train,
-                  epochs=5,
-                  batch_size=32)
+                  epochs=ep,
+                  batch_size=bs,
+                  validation_data = (x_test,y_test))
   
   return model, np.rint(model.predict(x_test))

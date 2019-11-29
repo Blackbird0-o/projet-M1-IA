@@ -18,18 +18,44 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 plt.close('all')
 
 x_train, y_train, x_test, y_test = dataload(merge=True)
-
+'''
 # création du vecteur temps (h)
 t = np.arange(len(x_train[0])) * (36.0/60.0)
 dt = 36 * 60  # sampling rate (s) les données sont prises avec 36min d'écart
 f = np.fft.fftfreq(x_train.shape[1], dt)  # vecteur fréquence en (Hz)
 
 x_train, y_train = bootstrap(x_train, y_train)
+x_test, y_test = bootstrap(x_test, y_test, inv = False)
 x_train, x_test = scale_datasets(x_train, x_test,param='RPN')
 
+model, pred = maxinet(x_train,y_train,x_test,y_test)
 
 
-X_encoded, X_tst_encoded, autoencoder = auto_encoder(x_train, x_test)
+#X_encoded, X_tst_encoded, autoencoder = auto_encoder(x_train, x_test)
+
+getScores(y_test, pred)
+'''
+def RMSE(x_true,x_pred) :
+  
+  return np.sqrt(np.sum((x_true-x_pred)**2,axis = 1)) 
+
+x_train, x_test = scale_datasets(x_train, x_test,param='RPN')
+
+x_train0 = x_train[np.where(y_train ==0)]
+x_train1 = x_train[np.where(y_train ==1)]
+x_test0 = x_test[np.where(y_test ==0)]
+x_test1 = x_test[np.where(y_test ==1)]
+
+x_train0_encd, x_test0_encd, autoencoder = auto_encoder_conv(x_train0, x_test0)
+
+x_train1_encd = autoencoder.predict(x_train1)
+x_test1_encd = autoencoder.predict(x_test1)
+
+x_train0RMSE = RMSE(x_train0,x_train0_encd)
+x_train1RMSE = RMSE(x_train1,x_train1_encd)
+
+
+
 
 '''
 # for neural net reshape = True
