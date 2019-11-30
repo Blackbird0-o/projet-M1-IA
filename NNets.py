@@ -2,7 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score, mean_squared_error
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, KFold
 
 from keras import backend as K
 from keras.models import Sequential 
@@ -38,6 +38,25 @@ def getScores(pred, result):
   print('')
   return scoref1, modelError, confusion
 
+def getScores_cross(pred, result, display=False):
+  confusion = confusion_matrix(result, pred)
+  
+  if display:
+    print('Precision :')
+    print(precision_score(result, pred))
+    print('Recall :')
+    print(recall_score(result, pred))
+    print('F1 Score :')
+    print(f1_score(result, pred))
+    print('MSE :')
+    print('')
+    print(mean_squared_error(result, pred))
+    print('confusion_matrix : ')
+    print(confusion)
+    print('')
+  
+  return confusion 
+
 def recall(y_true, y_pred):
   """Recall metric.
   Only computes a batch-wise average of recall.
@@ -62,6 +81,7 @@ def f1(y_true, y_pred):
   preci = precision(y_true, y_pred)
   rec = recall(y_true, y_pred)
   return 2*((preci*rec)/(preci+rec+K.epsilon()))
+
 
 # -------------Neural Nets-------------
 def auto_encoder(X, X_tst):
@@ -158,3 +178,67 @@ def maxinet(x_train,y_train,x_test,y_test):
                   batch_size=32)
   
   return model, np.rint(model.predict(x_test))
+
+
+# -------------Cross Val-------------
+def cross_validation(X, y, splits=5, testing=False): #PBL maybe because of bootstrap maybe do boostrap in here because we could have 30 times one exo in val data...
+  #We first need to split the train set into exoplanet and non-exoplanet so that there isn't any expolanet in either the train or val test for example
+  x_stars = X[np.where(y==0)]
+  y_stars = y[np.where(y==0)]
+  x_exo = X[np.where(y==1)]
+  y_exo = y[np.where(y==1)]
+
+  kf = KFold(n_splits=splits, random_state=None, shuffle=False)
+  
+  split_stars = kf.split(x_stars)
+  split_exo = kf.split(x_exo)
+  scores = np.zeros((splits, 2, 2))
+
+  for k in range(splits):
+    spS = next(split_stars)
+    spE = next(split_exo)
+    idx_tra_S = spS[0]
+    idx_val_S = spS[1]
+    idx_tra_E = spE[0]
+    idx_val_E = spE[1]
+
+    x_tra = np.concatenate((x_stars[idx_tra_S], x_exo[idx_tra_E]))
+    y_tra = np.concatenate((y_stars[idx_tra_S], y_exo[idx_tra_E]))
+    x_val = np.concatenate((x_stars[idx_val_S], x_exo[idx_val_E]))
+    y_val = np.concatenate((y_stars[idx_val_S], y_exo[idx_val_E]))
+    x_tra, y_tra = shuffle(x_tra, y_tra)
+    x_val, y_val = shuffle(x_val, y_val)
+    pred = maxinet_cross(x_tra, y_tra, x_val, y_val, tst=testing)
+    scores[k] = getScores_cross(y_val, pred)
+
+  return scores
+
+def maxinet_cross(x_train,y_train,x_test,y_test, tst=False):
+  model = Sequential()
+
+  model.add(Conv1D(16, 200, activation='relu', padding='same', input_shape=x_train.shape[1:]))
+  model.add(MaxPooling1D(4, padding='same'))
+  model.add(Conv1D(8, 100, activation='relu', padding='same'))
+  model.add(MaxPooling1D(4, padding='same'))
+  model.add(Conv1D(4, 10, activation='relu', padding='same'))
+  model.add(Dropout(0.2))
+  model.add(CuDNNLSTM(200, return_sequences=True))
+  model.add(Dropout(0.2))
+  model.add(CuDNNLSTM(20)) 
+  model.add(Dropout(0.2))
+  model.add(Dense(1, activation='sigmoid'))
+
+  model.compile(optimizer='adam', loss='binary_crossentropy',metrics=[precision]) #[f1, precision, "accuracy"]
+  if tst:
+    model.fit(x_train, y_train,
+                    epochs=1,
+                    shuffle = True,
+                    batch_size=128)
+  else:
+    model.fit(x_train, y_train,
+                    epochs=6,
+                    shuffle = True,
+                    batch_size=32)
+  
+
+  return np.rint(model.predict(x_test))
