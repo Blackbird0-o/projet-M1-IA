@@ -2,5 +2,6 @@ data
 exoTrain.csv
 exoTest.csv
 .vscode
+.ipynb_checkpoints
 __pycache__
 PCA.py

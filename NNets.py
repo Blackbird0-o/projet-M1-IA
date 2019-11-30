@@ -5,7 +5,7 @@ from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_
 from sklearn.model_selection import train_test_split
 
 from keras import backend as K
-from tensorflow.keras.models import Sequential 
+from keras.models import Sequential 
 from keras.models import  Model
 from tensorflow.python.keras.layers import Activation, Dense, Dropout, Flatten, BatchNormalization, CuDNNLSTM, LSTM, Conv1D,UpSampling1D, MaxPool1D,MaxPooling1D, Permute, Reshape
 from keras.optimizers import RMSprop, adam
@@ -133,8 +133,8 @@ def auto_encoder_conv(X, X_tst):
 
   return X_encoded, X_tst_encoded, autoencoder
 
+def maxinet(x_train,y_train,x_test,y_test):
 
-def maxinet(x_train,y_train,x_test,y_test,ep = 5, bs = 32):
   model = Sequential()
 
   model.add(Conv1D(16, 200, activation='relu', padding='same', input_shape=x_train.shape[1:]))
@@ -145,9 +145,7 @@ def maxinet(x_train,y_train,x_test,y_test,ep = 5, bs = 32):
   model.add(Dropout(0.2))
   model.add(CuDNNLSTM(200, return_sequences=True))
   model.add(Dropout(0.2))
-  model.add(CuDNNLSTM(70, return_sequences=True))
-  model.add(Dropout(0.2))
-  model.add(CuDNNLSTM(10))
+  model.add(CuDNNLSTM(20)) 
   model.add(Dropout(0.2))
   model.add(Dense(1, activation='sigmoid'))
 
@@ -155,8 +153,8 @@ def maxinet(x_train,y_train,x_test,y_test,ep = 5, bs = 32):
 
   model.compile(optimizer='adam', loss='binary_crossentropy',metrics=[precision]) #[f1, precision, "accuracy"]
   model.fit(x_train, y_train,
-                  epochs=ep,
-                  batch_size=bs,
-                  validation_data = (x_test,y_test))
+                  epochs=6,
+                  shuffle = True,
+                  batch_size=32)
   
   return model, np.rint(model.predict(x_test))
