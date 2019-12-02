@@ -25,12 +25,14 @@ def RPN(x):
         
     output :
         x_RPN = array numpy, la RPN du signal
-        '''
+    '''
     mean = np.mean(x,axis=1).reshape(x.shape[0],1)
     return (x-mean)/np.max(x,axis = 1).reshape(x.shape[0],1)
   
 def shuffle(x,y):
-    # shuffle
+    '''
+    Shuffles the dataset along side the labels
+    '''
     index = np.arange(y.shape[0])
     np.random.shuffle(index)
     x = x[index]
@@ -39,6 +41,15 @@ def shuffle(x,y):
     return x,y
     
 def bootstrap(x_train,y_train,inv=True) :
+    '''
+    Duplicates exoplanet stars until the number of exoplanet stars is identical to non-exoplanet stars
+    Input : 
+      x_train, y_train : numpy arrays dataset and associated labels
+      inv : parameter (Boolean), if True then exoplanet stars flux signal are flipped (time symetry) and added to the dataset before bootstrap
+    Output :
+      x_train_boot, y_train_boot : numpy arrays, x_train, ytrain bootstraped
+    '''
+
     if inv :
       x_train,y_train = inv_data(x_train,y_train)
       
@@ -55,43 +66,53 @@ def bootstrap(x_train,y_train,inv=True) :
     return x_train_boot,y_train_boot
 
 def dataload(path='data/',merge=True) :
-    # Loading datas
-    data_train = pd.read_csv(path+'exoTrain.csv')
-    data_test = pd.read_csv(path+'exoTest.csv')
+  '''
+  Loads data and creates training and testing set and labels
+  Input : 
+    merge : parameter (Boolean), if true then the two original datasets are mixed together and shuffled
+    path : parameter (String), sets the path from which to retrieve the datasets
+  Output :
+    x_train, y_train, x_test, y_test : numpy arrays, training and testing set adn labels
+  '''
+
+  # Loading datas
+  data_train = pd.read_csv(path+'exoTrain.csv')
+  data_test = pd.read_csv(path+'exoTest.csv')
+  
+  # transformation des label en array de 0 et 1
+  y_train = np.array(data_train["LABEL"])-1
+  y_test = np.array(data_test['LABEL'])-1
+  
+  # on charge les features
+  x_train = np.array(data_train.drop('LABEL',axis=1))
+  x_test = np.array(data_test.drop('LABEL',axis=1))
+  
+  if merge :
+    data = np.concatenate((x_train,x_test))
+    y = np.concatenate((y_train,y_test))
+    data0 = data[np.where(y==0)[0]]
+    y0 = y[np.where(y==0)[0]]
+    data1 = data[np.where(y==1)[0]]
+    y1 = y[np.where(y==1)[0]]
     
-    # transformation des label en array de 0 et 1
-    y_train = np.array(data_train["LABEL"])-1
-    y_test = np.array(data_test['LABEL'])-1
+    x_train0,x_test0,y_train0,y_test0 = train_test_split(data0,y0, test_size = 0.1)
+    x_train1,x_test1,y_train1,y_test1 = train_test_split(data1,y1, test_size = 0.1)
     
-    # on charge les features
-    x_train = np.array(data_train.drop('LABEL',axis=1))
-    x_test = np.array(data_test.drop('LABEL',axis=1))
+    x_train = np.concatenate((x_train0,x_train1))
+    y_train = np.concatenate((y_train0,y_train1))
+    x_test = np.concatenate((x_test0,x_test1))
+    y_test = np.concatenate((y_test0,y_test1))
     
-    if merge :
-      data = np.concatenate((x_train,x_test))
-      y = np.concatenate((y_train,y_test))
-      data0 = data[np.where(y==0)[0]]
-      y0 = y[np.where(y==0)[0]]
-      data1 = data[np.where(y==1)[0]]
-      y1 = y[np.where(y==1)[0]]
-      
-      x_train0,x_test0,y_train0,y_test0 = train_test_split(data0,y0, test_size = 0.1)
-      x_train1,x_test1,y_train1,y_test1 = train_test_split(data1,y1, test_size = 0.1)
-      
-      x_train = np.concatenate((x_train0,x_train1))
-      y_train = np.concatenate((y_train0,y_train1))
-      x_test = np.concatenate((x_test0,x_test1))
-      y_test = np.concatenate((y_test0,y_test1))
-      
-      x_train,y_train = shuffle(x_train,y_train)
-      x_test,y_test = shuffle(x_test,y_test)
-    
-    return x_train,y_train,x_test,y_test
+    x_train,y_train = shuffle(x_train,y_train)
+    x_test,y_test = shuffle(x_test,y_test)
+  
+  return x_train,y_train,x_test,y_test
 
 def pcaPlot(X, y, descr= 'temporel',plot_samples = 500):
   '''
   Defines and 10 components PCA of the dataset X and plots the first 3
   '''
+
   pca = PCA(n_components=10)
   x_PCA = pca.fit_transform(X)
 
@@ -118,26 +139,36 @@ def pcaPlot(X, y, descr= 'temporel',plot_samples = 500):
   plt.show()
   return None
 
-#Make an identity sampler
 class FakeSampler(BaseSampler):
+  '''
+  Creates an identity sampler
+  '''
 
-    _sampling_type = 'bypass'
-
-    def _fit_resample(self, X, y):
-        return X, y
+  _sampling_type = 'bypass'
+  def _fit_resample(self, X, y):
+    return X, y
 
 def plot_resampling(X, y, sampling, ax):
-    X_res, y_res = sampling.fit_resample(X, y)
-    ax.scatter(X_res[:, 0], X_res[:, 1], c=y_res, alpha=0.8, edgecolor='k')
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.get_xaxis().tick_bottom()
-    ax.get_yaxis().tick_left()
-    ax.spines['left'].set_position(('outward', 10))
-    ax.spines['bottom'].set_position(('outward', 10))
-    return Counter(y_res)
+  '''
+  Beautiful plot
+  '''
+
+  X_res, y_res = sampling.fit_resample(X, y)
+  ax.scatter(X_res[:, 0], X_res[:, 1], c=y_res, alpha=0.8, edgecolor='k')
+  ax.spines['top'].set_visible(False)
+  ax.spines['right'].set_visible(False)
+  ax.get_xaxis().tick_bottom()
+  ax.get_yaxis().tick_left()
+  ax.spines['left'].set_position(('outward', 10))
+  ax.spines['bottom'].set_position(('outward', 10))
+  return Counter(y_res)
 
 def SMOTE_plot(x_train, y_train):
+  '''
+  Plots both raw data and SMOTE generated data
+  Input : 
+    x_train, y_train : numpy arrays, training set and labels
+  '''
   sampler = FakeSampler()
 
   fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 15))
@@ -151,6 +182,10 @@ def SMOTE_plot(x_train, y_train):
   return None
 
 def transform_dataset(X, mode='wavelet', wname='db5',nsamples=10):
+  '''
+  Transforms a given dataset using a specified transformation
+  '''
+
   if mode == 'wavelet':
     return pywt.dwt(X, wname)[0][:,0:nsamples]
 
@@ -165,6 +200,14 @@ def transform_dataset(X, mode='wavelet', wname='db5',nsamples=10):
     return allz
 
 def scale_datasets(X_train, X_test, param='standardScaling', reshape=True):
+  '''
+  Scales train and test sets using a specified method
+  Input :
+    x_train, x_test, numpy arrays
+  Output : 
+    two numpy arrays, x_train and x_test scaled and/or normalized
+  '''
+
   SC = StandardScaler()
   train_shape = X_train.shape
   test_shape = X_test.shape
@@ -227,6 +270,14 @@ def scale_datasets(X_train, X_test, param='standardScaling', reshape=True):
       return X_train/norm_train, X_test/norm_train
 
 def inv_data(X, y):
+  '''
+  Flips array when array corresponds to an exoplanet (time inversion)
+  Input :
+    X, y : numpy arrays, dataset and labels
+  Output :
+    two numpy arrays which correspond to : X + flipped data, y + labels of flipped data
+  '''
+
   X_flipped = np.flip(X[np.where(y == 1)[0]], 1)
-  y_flipped = np.ones((X_flipped.shape[0]))
+  y_flipped = np.ones((X_flipped.shape[0])) # all flipped arrays have a label of one by definition
   return np.concatenate((X, X_flipped)), np.concatenate((y, y_flipped))

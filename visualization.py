@@ -12,9 +12,8 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 plt.close('all')
 
 
-# -------------Pretreatment-------------
-
-# run in console so that you don't have a different set each time :
+# -------------Prior Treatment-------------
+# run lines below in console so that you don't have a different set each time :
 # ---
 x_train, y_train, x_test, y_test = dataload(merge=True)
 x_train, x_test = scale_datasets(
@@ -22,7 +21,8 @@ x_train, x_test = scale_datasets(
 x_train, y_train = bootstrap(x_train, y_train)
 # ---
 
-# -------------Functons-------------
+
+# -------------Functions-------------
 def comparaison_creator(X, svgON=False):
   '''
   Create several datasets from different transformations
@@ -58,7 +58,7 @@ def comparaison_methods_plot(x1, x2, x3, x4, index):
 
 def compare_stars(X, y, nsamples):
   '''
-  Plots a few exoplanet nd non-exoplanet stars of a specific dataset
+  Plots a few exoplanet stars and non-exoplanet stars of a specific dataset
   '''
 
   index_exo = np.where(y == 1)

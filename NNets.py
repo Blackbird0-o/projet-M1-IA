@@ -14,43 +14,73 @@ from keras.utils import to_categorical
 
 # -------------Scores and metrics-------------
 def root_mean_squared_error(y_true, y_pred):
+  '''
+  Calculates RMSE
+  Input : 
+    y_true : numpy array, real labels
+    y_pred : numpy array, predicted labels
+  Output : 
+    RMSE of y_pred - y_true
+  '''
+
   return K.sqrt(K.mean(K.square(y_pred - y_true))) 
       
-def getScores(pred, result):
+def getScores(real, result):
+  '''
+  Evaluates predictions of a model
+  Input : 
+    real : numpy array, real labels
+    result : numpy array, predicted labels
+  Output : 
+    scoref1 : float, score f1 of given prediction
+    modelError : float, model error
+    confusion : numpy array, confusion matrix
+  '''
+
   print('Precision :')
-  print(precision_score(result, pred))
+  print(precision_score(result, real))
 
   print('Recall :')
-  print(recall_score(result, pred))
+  print(recall_score(result, real))
 
   print('F1 Score :')
-  scoref1 = f1_score(result, pred)
+  scoref1 = f1_score(result, real)
   print(scoref1)
 
   print('MSE :')
-  modelError = mean_squared_error(result, pred)
+  modelError = mean_squared_error(result, real)
   print(modelError)
 
   print('')
   print('confusion_matrix : ')
-  confusion = confusion_matrix(result, pred)
+  confusion = confusion_matrix(result, real)
   print(confusion)
   print('')
   return scoref1, modelError, confusion
 
-def getScores_cross(pred, result, display=False):
-  confusion = confusion_matrix(result, pred)
+def getScores_cross(real, result, display=False):
+  '''
+  Evaluates predictions of a model
+  Input : 
+    real : numpy array, real labels
+    result : numpy array, predicted labels
+    display : parameter (Boolean), if True then prints all metrics value
+  Output :
+    confusion : numpy array, confusion matrix
+  '''
+
+  confusion = confusion_matrix(result, real)
   
   if display:
     print('Precision :')
-    print(precision_score(result, pred))
+    print(precision_score(result, real))
     print('Recall :')
-    print(recall_score(result, pred))
+    print(recall_score(result, real))
     print('F1 Score :')
-    print(f1_score(result, pred))
+    print(f1_score(result, real))
     print('MSE :')
     print('')
-    print(mean_squared_error(result, pred))
+    print(mean_squared_error(result, real))
     print('confusion_matrix : ')
     print(confusion)
     print('')
@@ -58,26 +88,34 @@ def getScores_cross(pred, result, display=False):
   return confusion 
 
 def recall(y_true, y_pred):
-  """Recall metric.
+  '''
+  Defines Recall metric.
   Only computes a batch-wise average of recall.
   Computes the recall, a metric for multi-label classification of
   how many relevant items are selected.
-  """
+  '''
+
   true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
   possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
   return true_positives / (possible_positives + K.epsilon())
 
 def precision(y_true, y_pred):
-  """Precision metric.
+  ''' 
+  Defines Precision metric.
   Only computes a batch-wise average of precision.
   Computes the precision, a metric for multi-label classification of
   how many selected items are relevant.
-  """
+  '''
+
   true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
   predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
   return true_positives / (predicted_positives + K.epsilon())
 
 def f1(y_true, y_pred):
+  '''
+  Defines f1 metric.
+  '''
+
   preci = precision(y_true, y_pred)
   rec = recall(y_true, y_pred)
   return 2*((preci*rec)/(preci+rec+K.epsilon()))
@@ -85,6 +123,8 @@ def f1(y_true, y_pred):
 
 # -------------Neural Nets-------------
 def auto_encoder(X, X_tst):
+  
+
   autoencoder = Sequential()
 
   # Encoder
@@ -115,12 +155,22 @@ def auto_encoder(X, X_tst):
   #encoder = Model(inputs=autoencoder.input, outputs=autoencoder.get_layer('conv1d_3').output)
   #encoder.summary()
 
-  X_encoded = autoencoder.predict(X)
-  X_tst_encoded = autoencoder.predict(X_tst)
+  X_autoencoded = autoencoder.predict(X)
+  X_tst_autoencoded = autoencoder.predict(X_tst)
 
-  return X_encoded, X_tst_encoded, autoencoder
+  return X_autoencoded, X_tst_autoencoded, autoencoder
 
 def auto_encoder_conv(X, X_tst):
+  '''
+  Defines, compiles and fits a convolutionnal autoencoder.
+  Input : 
+    X, X_tst : numpy arrays, train and test sets
+  Output :
+    X_autoencoded : numpy array, X transformedpredicted by model
+    X_tst_autoencoded : numpy array, X transformedpredicted by model
+    autoencoder : autoencoder model
+  '''
+
   autoencoder = Sequential()
 
   # Encoder
@@ -140,20 +190,23 @@ def auto_encoder_conv(X, X_tst):
 
   autoencoder.summary()
 
-
-
   autoencoder.compile(optimizer='adam', loss = root_mean_squared_error)
   autoencoder.fit(X, X,epochs=10,batch_size=128)
 
-  #encoder = Model(inputs=autoencoder.input, outputs=autoencoder.get_layer('conv1d_3').output)
-  #encoder.summary()
+  X_autoencoded = autoencoder.predict(X)
+  X_tst_autoencoded = autoencoder.predict(X_tst)
 
-  X_encoded = autoencoder.predict(X)
-  X_tst_encoded = autoencoder.predict(X_tst)
-
-  return X_encoded, X_tst_encoded, autoencoder
+  return X_autoencoded, X_tst_autoencoded, autoencoder
 
 def maxinet(x_train,y_train,x_test,y_test):
+  '''
+  Defines, compiles and fits a Conv and LSTM Net
+  Input :
+    x_train,y_train,x_test,y_test : numpy arrays, train and test sets and labels
+  Output : 
+    model : neural net trained model
+    np.rint(model.predict(x_test)) : int numpy array, label prediction of x_test
+  '''
 
   model = Sequential()
 
@@ -179,41 +232,17 @@ def maxinet(x_train,y_train,x_test,y_test):
   
   return model, np.rint(model.predict(x_test))
 
-
-# -------------Cross Val-------------
-def cross_validation(X, y, splits=5, testing=False): #PBL maybe because of bootstrap maybe do boostrap in here because we could have 30 times one exo in val data...
-  #We first need to split the train set into exoplanet and non-exoplanet so that there isn't any expolanet in either the train or val test for example
-  x_stars = X[np.where(y==0)]
-  y_stars = y[np.where(y==0)]
-  x_exo = X[np.where(y==1)]
-  y_exo = y[np.where(y==1)]
-
-  kf = KFold(n_splits=splits, random_state=None, shuffle=False)
-  
-  split_stars = kf.split(x_stars)
-  split_exo = kf.split(x_exo)
-  scores = np.zeros((splits, 2, 2))
-
-  for k in range(splits):
-    spS = next(split_stars)
-    spE = next(split_exo)
-    idx_tra_S = spS[0]
-    idx_val_S = spS[1]
-    idx_tra_E = spE[0]
-    idx_val_E = spE[1]
-
-    x_tra = np.concatenate((x_stars[idx_tra_S], x_exo[idx_tra_E]))
-    y_tra = np.concatenate((y_stars[idx_tra_S], y_exo[idx_tra_E]))
-    x_val = np.concatenate((x_stars[idx_val_S], x_exo[idx_val_E]))
-    y_val = np.concatenate((y_stars[idx_val_S], y_exo[idx_val_E]))
-    x_tra, y_tra = shuffle(x_tra, y_tra)
-    x_val, y_val = shuffle(x_val, y_val)
-    pred = maxinet_cross(x_tra, y_tra, x_val, y_val, tst=testing)
-    scores[k] = getScores_cross(y_val, pred)
-
-  return scores
-
 def maxinet_cross(x_train,y_train,x_test,y_test, tst=False):
+  '''
+  Defines, compiles and fits a Conv and LSTM Net. 
+  Modified version of maxinet to run with cross validation.
+  Input :
+    x_train,y_train,x_test,y_test : numpy arrays, train and test sets and labels
+  Output : 
+    model : neural net trained model
+    np.rint(model.predict(x_test)) : int numpy array, label prediction of x_test
+  '''
+
   model = Sequential()
 
   model.add(Conv1D(16, 200, activation='relu', padding='same', input_shape=x_train.shape[1:]))
@@ -240,5 +269,64 @@ def maxinet_cross(x_train,y_train,x_test,y_test, tst=False):
                     shuffle = True,
                     batch_size=32)
   
-
   return np.rint(model.predict(x_test))
+
+
+# -------------Cross Val-------------
+def cross_validation(X, y, splits=5, testing=False): 
+  '''
+  Runs cross validation on maxinet_cross Neural Net
+  Input : 
+    X, y : numpy arrays, dataset and labels
+    splits : parameter (Int), number of splits of KFold cross validation
+    testing : parameter (Boolean), if True shortens runtime for testing purpose
+  Ouput : 
+    scores : numpy array, confusion matrix from each split 
+  '''
+
+  # Separate exoplanet stars from non-exoplanet stars
+  x_stars = X[np.where(y==0)]
+  y_stars = y[np.where(y==0)]
+  x_exo = X[np.where(y==1)]
+  y_exo = y[np.where(y==1)]
+
+  # Create splits
+  kf = KFold(n_splits=splits, random_state=None, shuffle=False)
+  split_stars = kf.split(x_stars)
+  split_exo = kf.split(x_exo)
+  scores = np.zeros((splits, 2, 2))
+
+  for k in range(splits):
+    # A bit of info
+    print("Running split number ", k + 1)
+
+    # Define splits
+    spS = next(split_stars)
+    spE = next(split_exo)
+    idx_tra_S = spS[0]
+    idx_tst_S = spS[1]
+    idx_tra_E = spE[0]
+    idx_tst_E = spE[1]
+
+    # Create train and test sets
+    x_tra = np.concatenate((x_stars[idx_tra_S], x_exo[idx_tra_E]))
+    y_tra = np.concatenate((y_stars[idx_tra_S], y_exo[idx_tra_E]))
+    x_tst = np.concatenate((x_stars[idx_tst_S], x_exo[idx_tst_E]))
+    y_tst = np.concatenate((y_stars[idx_tst_S], y_exo[idx_tst_E]))
+
+    # Shuffle datasets
+    x_tra, y_tra = shuffle(x_tra, y_tra)
+    x_tst, y_tst = shuffle(x_tst, y_tst)
+
+    # Bootstrap datasets
+    x_tra, y_tra = bootstrap(x_tra, y_tra)
+    x_tst, y_tst = bootstrap(x_tst, y_tst, inv=False)
+
+    # Scale datasets
+    x_tra, x_tst = scale_datasets(x_tra, x_tst, param='RPN')
+
+    # Run and evaluate NN
+    pred = maxinet_cross(x_tra, y_tra, x_tst, y_tst, tst=testing)
+    scores[k] = getScores_cross(y_tst, pred)
+
+  return scores

@@ -17,7 +17,9 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 
 plt.close('all')
 
+# -------------Test runs-------------
 x_train, y_train, x_test, y_test = dataload(merge=True)
+
 '''
 # création du vecteur temps (h)
 t = np.arange(len(x_train[0])) * (36.0/60.0)
@@ -36,7 +38,6 @@ model, pred = maxinet(x_train,y_train,x_test,y_test)
 getScores(y_test, pred)
 '''
 def RMSE(x_true,x_pred) :
-  
   return np.sqrt(np.sum((x_true-x_pred)**2,axis = 1)) 
 
 x_train, x_test = scale_datasets(x_train, x_test,param='RPN')

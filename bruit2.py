@@ -1,6 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
+#-------------Imports-------------
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,7 +8,7 @@ from tqdm import tqdm
 
 
 
-
+#-------------Functions-------------
 def loss(x,s,s_fft) :
     k = 2*int(np.abs(x[0])) + 1     # k doit etre un entier positif impair
     n = int(np.abs(x[1]))
