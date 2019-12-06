@@ -30,4 +30,6 @@ classifiers.py contains all the different functions made to run a plethora of cl
 
 NNets.py contains a few metrics definition to evaluate the models, some autoencoders as well as the most effective neural net we built : 'maxinet'.
 
+visualization.py is a "library" we created to easily compare the raw data and the data that went through different transforms (fft, wavelet, etc).
+
 bruit.py and bruit2.py were data processing files made to reduce the noise in the datasets. They were intuitions which we thought were necessary at first, but they actually turned out to be pretty much useless.

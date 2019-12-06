@@ -108,6 +108,30 @@ def dataload(path='data/',merge=True) :
   
   return x_train,y_train,x_test,y_test
 
+def data_load_for_cross(path='drive/My Drive/M1/IA/'):
+  '''
+  Loads data into one single dataset. 
+  Takes only the path as parameter and returns two numpy arrays X and y
+  '''
+
+  # Loading data
+  data_train = pd.read_csv(path+'exoTrain.csv')
+  data_test = pd.read_csv(path+'exoTest.csv')
+  
+  # Transform labels into arrays of zeros and ones
+  y_train = np.array(data_train["LABEL"])-1
+  y_test = np.array(data_test['LABEL'])-1
+  
+  # Load features
+  x_train = np.array(data_train.drop('LABEL',axis=1))
+  x_test = np.array(data_test.drop('LABEL',axis=1))
+  
+  # Merge datasets
+  X = np.concatenate((x_train,x_test))
+  y = np.concatenate((y_train,y_test))
+
+  return X, y
+
 def pcaPlot(X, y, descr= 'temporel',plot_samples = 500):
   '''
   Defines and 10 components PCA of the dataset X and plots the first 3

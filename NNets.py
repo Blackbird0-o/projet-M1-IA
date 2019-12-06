@@ -11,7 +11,7 @@ from tensorflow.python.keras.layers import Activation, Dense, Dropout, Flatten, 
 from keras.optimizers import RMSprop, adam
 from keras.utils import to_categorical
 
-
+from dataProcessing import *
 # -------------Scores and metrics-------------
 def root_mean_squared_error(y_true, y_pred):
   '''
@@ -123,7 +123,15 @@ def f1(y_true, y_pred):
 
 # -------------Neural Nets-------------
 def auto_encoder(X, X_tst):
-  
+  '''
+  Defines, compiles and fits an autoencoder.
+  Input : 
+    X, X_tst : numpy arrays, train and test sets
+  Output :
+    X_autoencoded : numpy array, X transformedpredicted by model
+    X_tst_autoencoded : numpy array, X transformedpredicted by model
+    autoencoder : autoencoder model
+  '''
 
   autoencoder = Sequential()
 
@@ -147,13 +155,8 @@ def auto_encoder(X, X_tst):
 
   autoencoder.summary()
 
-
-
   autoencoder.compile(optimizer='adam', loss = root_mean_squared_error)
   autoencoder.fit(X, X,epochs=10,batch_size=128)
-
-  #encoder = Model(inputs=autoencoder.input, outputs=autoencoder.get_layer('conv1d_3').output)
-  #encoder.summary()
 
   X_autoencoded = autoencoder.predict(X)
   X_tst_autoencoded = autoencoder.predict(X_tst)
@@ -179,7 +182,6 @@ def auto_encoder_conv(X, X_tst):
   autoencoder.add(Conv1D(8, 4, activation='relu', padding='same'))
   autoencoder.add(MaxPooling1D(4, padding='same'))
   autoencoder.add(Conv1D(1, 4, activation='sigmoid', padding='same'))
-
 
   # Decoder
   autoencoder.add(Conv1D(8, 4, activation='relu', padding='same'))
