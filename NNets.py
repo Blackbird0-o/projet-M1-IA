@@ -332,3 +332,100 @@ def cross_validation(X, y, splits=5, testing=False):
     scores[k] = getScores_cross(y_tst, pred)
 
   return scores
+
+
+
+# -------------Issue Data IDing-------------
+def maxinet_ID_issue(x_train,y_train,x_test,y_test, tst=False):
+  model = Sequential()
+
+  model.add(Conv1D(16, 200, activation='relu', padding='same', input_shape=x_train.shape[1:]))
+  model.add(MaxPooling1D(4, padding='same'))
+  model.add(Conv1D(8, 100, activation='relu', padding='same'))
+  model.add(MaxPooling1D(4, padding='same'))
+  model.add(Conv1D(4, 10, activation='relu', padding='same'))
+  model.add(Dropout(0.2))
+  model.add(CuDNNLSTM(200, return_sequences=True))
+  model.add(Dropout(0.2))
+  model.add(CuDNNLSTM(70, return_sequences=True)) 
+  model.add(Dropout(0.2))
+  model.add(CuDNNLSTM(10)) 
+  model.add(Dropout(0.2))
+
+  model.add(Dense(1, activation='sigmoid'))
+
+  model.compile(optimizer='adam', loss='binary_crossentropy',metrics=[precision]) #[f1, precision, "accuracy"]
+  if tst:
+    model.fit(x_train, y_train,
+                    epochs=1,
+                    shuffle = True,
+                    batch_size=128)
+  else:
+    model.fit(x_train, y_train,
+                    epochs=6,
+                    shuffle = True,
+                    batch_size=32,
+                    validation_data=(x_test, y_test))
+  
+  return model
+
+def cross_validation_ID_issue(X, y, splits=5, testing=False):
+  # Separate exoplanet stars from non-exoplanet stars
+  x_stars = X[np.where(y==0)]
+  y_stars = y[np.where(y==0)]
+  x_exo = X[np.where(y==1)]
+  y_exo = y[np.where(y==1)]
+
+  #scaling X
+  X_scaled, bbb = scale_datasets(X, X, param='RPN')
+
+  # Create splits
+  kf = KFold(n_splits=splits, random_state=None, shuffle=False)
+  split_stars = kf.split(x_stars)
+  split_exo = kf.split(x_exo)
+  scores = np.zeros((splits, 2, 2))
+
+  ID_issues = np.empty(splits, dtype=object) 
+
+  for k in range(splits):
+    # A bit of info
+    print("Running split number ", k + 1)
+
+    # Define splits
+    spS = next(split_stars)
+    spE = next(split_exo)
+    idx_tra_S = spS[0]
+    idx_tst_S = spS[1]
+    idx_tra_E = spE[0]
+    idx_tst_E = spE[1]
+    
+
+    # Create train and test sets
+    x_tra = np.concatenate((x_stars[idx_tra_S], x_exo[idx_tra_E]))
+    y_tra = np.concatenate((y_stars[idx_tra_S], y_exo[idx_tra_E]))
+    x_tst = np.concatenate((x_stars[idx_tst_S], x_exo[idx_tst_E]))
+    y_tst = np.concatenate((y_stars[idx_tst_S], y_exo[idx_tst_E]))
+
+    # Shuffle datasets
+    x_tra, y_tra = shuffle(x_tra, y_tra)
+    x_tst, y_tst = shuffle(x_tst, y_tst)
+
+    # Bootstrap datasets
+    x_tra, y_tra = bootstrap(x_tra, y_tra)
+    x_tst, y_tst = bootstrap(x_tst, y_tst, inv=False)
+
+    # Scale datasets
+    x_tra, x_tst = scale_datasets(x_tra, x_tst, param='RPN')
+
+    # Run and evaluate NN
+    model = maxinet_ID_issue(x_tra, y_tra, x_tst, y_tst, tst=testing)
+
+    #predict all data to identify which data is always missclassififed
+    # Indeed we noticed that when those data were not in the train it caused 
+    # problems when testing and vice-versa : even when traning with it, it would fail
+    pred = np.rint(model.predict(X_scaled))
+    scores[k] = getScores_cross(y, pred)
+    pred = pred.flatten()
+    ID_issues[k] = np.where((y != pred))[0]
+
+  return ID_issues, scores
