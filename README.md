@@ -18,6 +18,8 @@ Jupyter notebooks are made to run directly in Google Colab. The only required mo
 
 F_Nbook_w_crossval.ipynb is the final architecture we used. We added cross validation to better evaluate the model.
 
+IDing_pbl_data.ipynb is a notebook where we identify the data that seems to be missclassified everytime during cross validation whether it is in the training set or not.
+
 Template.ipynb is a template of the colab notebook structure we might need to test any neural net or autoencoder. It contains the following sections : drive mount, imports, data processing and metrics definition.
 
 ## Python files

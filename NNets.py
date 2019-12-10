@@ -51,11 +51,9 @@ def getScores(real, result):
   modelError = mean_squared_error(result, real)
   print(modelError)
 
-  print('')
   print('confusion_matrix : ')
   confusion = confusion_matrix(result, real)
   print(confusion)
-  print('')
   return scoref1, modelError, confusion
 
 def getScores_cross(real, result, display=False):
@@ -90,9 +88,6 @@ def getScores_cross(real, result, display=False):
 def recall(y_true, y_pred):
   '''
   Defines Recall metric.
-  Only computes a batch-wise average of recall.
-  Computes the recall, a metric for multi-label classification of
-  how many relevant items are selected.
   '''
 
   true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
@@ -102,9 +97,6 @@ def recall(y_true, y_pred):
 def precision(y_true, y_pred):
   ''' 
   Defines Precision metric.
-  Only computes a batch-wise average of precision.
-  Computes the precision, a metric for multi-label classification of
-  how many selected items are relevant.
   '''
 
   true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
