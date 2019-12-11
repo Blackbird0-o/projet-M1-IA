@@ -1,13 +1,13 @@
 # -------------Imports-------------
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score, mean_squared_error
+from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score, mean_squared_error, roc_curve, roc_auc_score 
 from sklearn.model_selection import train_test_split, KFold
 
 from keras import backend as K
 from keras.models import Sequential 
 from keras.models import  Model
-from tensorflow.python.keras.layers import Activation, Dense, Dropout, Flatten, BatchNormalization, CuDNNLSTM, LSTM, Conv1D,UpSampling1D, MaxPool1D,MaxPooling1D, Permute, Reshape
+from keras.layers import Activation, Dense, Dropout, Flatten, BatchNormalization, CuDNNLSTM, LSTM, Conv1D,UpSampling1D, MaxPool1D,MaxPooling1D, Permute, Reshape
 from keras.optimizers import RMSprop, adam
 from keras.utils import to_categorical
 
@@ -25,38 +25,39 @@ def root_mean_squared_error(y_true, y_pred):
 
   return K.sqrt(K.mean(K.square(y_pred - y_true))) 
       
-def getScores(real, result):
+def metrics_scores(y_true, pred, display=False):
   '''
   Evaluates predictions of a model
   Input : 
-    real : numpy array, real labels
-    result : numpy array, predicted labels
+    y_true : numpy array, real labels
+    pred : numpy array, predicted labels
   Output : 
     scoref1 : float, score f1 of given prediction
     modelError : float, model error
     confusion : numpy array, confusion matrix
   '''
+  scoref1 = f1_score(pred, y_true)
+  modelError = mean_squared_error(pred, y_true)
+  confusion = confusion_matrix(pred, y_true)
 
-  print('Precision :')
-  print(precision_score(result, real))
+  if display:
+    print('Precision :')
+    print(precision_score(pred, y_true))
+    print('Recall :')
+    print(recall_score(pred, y_true))
+    print('F1 Score :')
+    print(f1_score(pred, y_true))
+    print('MSE :')
+    print('')
+    print(mean_squared_error(pred, y_true))
+    print('confusion_matrix : ')
+    print(confusion)
+    print('')
 
-  print('Recall :')
-  print(recall_score(result, real))
-
-  print('F1 Score :')
-  scoref1 = f1_score(result, real)
-  print(scoref1)
-
-  print('MSE :')
-  modelError = mean_squared_error(result, real)
-  print(modelError)
-
-  print('confusion_matrix : ')
-  confusion = confusion_matrix(result, real)
-  print(confusion)
   return scoref1, modelError, confusion
 
-def getScores_cross(real, result, display=False):
+
+def metrics_scores_cross(y_true, pred, display=False):
   '''
   Evaluates predictions of a model
   Input : 
@@ -67,24 +68,31 @@ def getScores_cross(real, result, display=False):
     confusion : numpy array, confusion matrix
   '''
 
-  confusion = confusion_matrix(result, real)
+  pred_int = np.rint(pred)
+  confusion = confusion_matrix(y_true, pred_int)
+  fpr, tpr, _ = roc_curve(y_true, pred)
+  roc_score = roc_auc_score(y_true, pred)
   
   if display:
     print('Precision :')
-    print(precision_score(result, real))
+    print(precision_score(y_true, pred_int))
     print('Recall :')
-    print(recall_score(result, real))
+    print(recall_score(y_true, pred_int))
     print('F1 Score :')
-    print(f1_score(result, real))
+    print(f1_score(y_true, pred_int))
     print('MSE :')
     print('')
-    print(mean_squared_error(result, real))
+    print(mean_squared_error(y_true, pred_int))
     print('confusion_matrix : ')
     print(confusion)
     print('')
+    print('area under roc curve : ',roc_score)
+    plt.plot(fpr,tpr)
+    plt.xlabel('false positiv rate')
+    plt.ylabel('true positiv rate')
+    plt.show()
   
-  return confusion 
-
+  return confusion, roc_score
 def recall(y_true, y_pred):
   '''
   Defines Recall metric.
@@ -227,16 +235,6 @@ def maxinet(x_train,y_train,x_test,y_test):
   return model, np.rint(model.predict(x_test))
 
 def maxinet_cross(x_train,y_train,x_test,y_test, tst=False):
-  '''
-  Defines, compiles and fits a Conv and LSTM Net. 
-  Modified version of maxinet to run with cross validation.
-  Input :
-    x_train,y_train,x_test,y_test : numpy arrays, train and test sets and labels
-  Output : 
-    model : neural net trained model
-    np.rint(model.predict(x_test)) : int numpy array, label prediction of x_test
-  '''
-
   model = Sequential()
 
   model.add(Conv1D(16, 200, activation='relu', padding='same', input_shape=x_train.shape[1:]))
@@ -247,11 +245,14 @@ def maxinet_cross(x_train,y_train,x_test,y_test, tst=False):
   model.add(Dropout(0.2))
   model.add(CuDNNLSTM(200, return_sequences=True))
   model.add(Dropout(0.2))
-  model.add(CuDNNLSTM(20)) 
+  model.add(CuDNNLSTM(70, return_sequences=True)) 
   model.add(Dropout(0.2))
+  model.add(CuDNNLSTM(10)) 
+  model.add(Dropout(0.2))
+
   model.add(Dense(1, activation='sigmoid'))
 
-  model.compile(optimizer='adam', loss='binary_crossentropy',metrics=[precision]) #[f1, precision, "accuracy"]
+  model.compile(optimizer='adam', loss='binary_crossentropy',metrics=[recall, precision]) #[f1, precision, "accuracy"]
   if tst:
     model.fit(x_train, y_train,
                     epochs=1,
@@ -263,21 +264,11 @@ def maxinet_cross(x_train,y_train,x_test,y_test, tst=False):
                     shuffle = True,
                     batch_size=32)
   
-  return np.rint(model.predict(x_test))
 
+  return model.predict(x_test)
 
 # -------------Cross Val-------------
-def cross_validation(X, y, splits=5, testing=False): 
-  '''
-  Runs cross validation on maxinet_cross Neural Net
-  Input : 
-    X, y : numpy arrays, dataset and labels
-    splits : parameter (Int), number of splits of KFold cross validation
-    testing : parameter (Boolean), if True shortens runtime for testing purpose
-  Ouput : 
-    scores : numpy array, confusion matrix from each split 
-  '''
-
+def cross_validation(X, y, splits=5, testing=False):
   # Separate exoplanet stars from non-exoplanet stars
   x_stars = X[np.where(y==0)]
   y_stars = y[np.where(y==0)]
@@ -289,6 +280,8 @@ def cross_validation(X, y, splits=5, testing=False):
   split_stars = kf.split(x_stars)
   split_exo = kf.split(x_exo)
   scores = np.zeros((splits, 2, 2))
+  ROC = np.zeros(splits)
+  ID_issues = np.zeros(splits)
 
   for k in range(splits):
     # A bit of info
@@ -321,10 +314,9 @@ def cross_validation(X, y, splits=5, testing=False):
 
     # Run and evaluate NN
     pred = maxinet_cross(x_tra, y_tra, x_tst, y_tst, tst=testing)
-    scores[k] = getScores_cross(y_tst, pred)
+    scores[k], ROC[k] = metrics_scores_cross(y_tst, pred,display=True)
 
-  return scores
-
+  return scores, ROC
 
 
 # -------------Issue Data IDing-------------
@@ -376,6 +368,7 @@ def cross_validation_ID_issue(X, y, splits=5, testing=False):
   split_stars = kf.split(x_stars)
   split_exo = kf.split(x_exo)
   scores = np.zeros((splits, 2, 2))
+  ROC = np.zeros(splits)
 
   ID_issues = np.empty(splits, dtype=object) 
 
@@ -416,7 +409,7 @@ def cross_validation_ID_issue(X, y, splits=5, testing=False):
     # Indeed we noticed that when those data were not in the train it caused 
     # problems when testing and vice-versa : even when traning with it, it would fail
     pred = np.rint(model.predict(X_scaled))
-    scores[k] = getScores_cross(y, pred)
+    scores[k], ROC[k] = metrics_scores_cross(y, pred)
     pred = pred.flatten()
     ID_issues[k] = np.where((y != pred))[0]
 
