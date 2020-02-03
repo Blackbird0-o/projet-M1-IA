@@ -6,6 +6,8 @@ The goal is to identify the stars that have exoplanets orbiting them based on th
 
 We have one month to try and get the best results possible. The idea is not to win the kaggle project but simply to explore all the tools of ML and to face a real ML problem.
 
+You can find our results and conclusion in rapport.pdf . Note that this report is in french as the course was taught in french.
+
 ## Architecture of the repository
 
 Data is placed inside a 'data' folder which is ignored by git because it's too heavy (even for git large files treatment). The data is actually made of two datasets : exoTest.csv and exoTrain.csv (datasets can be downloaded here : https://www.kaggle.com/keplersmachines/kepler-labelled-time-series-data/download).
